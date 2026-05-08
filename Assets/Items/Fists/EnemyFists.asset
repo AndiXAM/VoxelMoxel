@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be32d5a970f1e954da7a947858a50453, type: 3}
+  m_Name: EnemyFists
+  m_EditorClassIdentifier: 
+  itemName: Fists
+  icon: {fileID: 21300000, guid: e8795308da20830408fc9dc38ac754b1, type: 3}
+  prefab: {fileID: 7322174311629863612, guid: 6405d17cbe35ecb41b7365af46cdacfe, type: 3}
+  maxStackSize: 1
+  damage: 5
+  attackWindup: 0.2
+  attackDuration: 0.8
+  attackCooldown: 1
+  comboLength: 2
+  resetTime: 2
+  isDualWeapon: 1
+  offHandPrefab: {fileID: 2448481702331259805, guid: 6a0d89608539a9c4dae733f9f4eea90d, type: 3}
+  leftHandChildObject: {fileID: 0}
+  weaponHitbox: {fileID: 0}
+  attackSound: {fileID: 8300000, guid: f1781b85c23eb9d48ba66e915e509c51, type: 3}
+  weaponAnimatorOverride: {fileID: 0}

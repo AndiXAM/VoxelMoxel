@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60583ffd4346084448f037f67de0f30c, type: 3}
+  m_Name: Quest_TEST
+  m_EditorClassIdentifier: 
+  questName: kill doppel
+  description: kill him
+  objectives:
+  - {fileID: 11400000, guid: 1689d0c6dff49f942aa616c0a41a7d36, type: 2}
+  rewards:
+  - {fileID: 11400000, guid: 75975d6100623ec4f92b40e528cdd025, type: 2}
+  - {fileID: 11400000, guid: c78422472bad3b8409e15d406fa7039b, type: 2}

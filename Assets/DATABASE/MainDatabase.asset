@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ac00db9dd73f4642b5f5ff6330e3a3b, type: 3}
+  m_Name: MainDatabase
+  m_EditorClassIdentifier: 
+  allItems:
+  - {fileID: 11400000, guid: 7cf32405c90fba440af878f158c4b5d3, type: 2}
+  - {fileID: 11400000, guid: 870a3a968628c7b409c58edd112d6b1a, type: 2}
+  - {fileID: 11400000, guid: 3897582754c0b53429c13a9a0da8566e, type: 2}
+  allClasses:
+  - {fileID: 11400000, guid: 109e6d0909e38234c9c8a179ed981119, type: 2}
+  - {fileID: 11400000, guid: c30838b87b9216c479eb4326009fd37f, type: 2}
+  - {fileID: 11400000, guid: 9034fad0a83748b4682c8ddfb185cf8b, type: 2}
+  - {fileID: 11400000, guid: 1cee5f90526c6264f936fef9d9a39417, type: 2}
+  allSkills:
+  - {fileID: 11400000, guid: 743b7dba5ac96bf48bc13bc876f5a290, type: 2}
+  allQuests:
+  - {fileID: 11400000, guid: 5578819be07a2f04d8a04b0e58291c70, type: 2}

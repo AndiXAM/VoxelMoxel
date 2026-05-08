@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d214aca1228ff4d409bea292fd93645f, type: 3}
+  m_Name: Poison_TEST
+  m_EditorClassIdentifier: 
+  effectName: Posion
+  description: make dot damage
+  icon: {fileID: 21300000, guid: 673f2d929f68359458c621045925b1e4, type: 3}
+  background: {fileID: 0}
+  colorTint: {r: 1, g: 1, b: 1, a: 0}
+  duration: 1
+  isStackable: 0
+  maxStacks: 1
+  refreshDurationOnNewStack: 1
+  canIgnoreDodge: 0
+  canIgnoreParry: 0
+  canIgnoreBlock: 1
+  statModifiers: []
+  isDamageOverTime: 1
+  damagePerTick: 5
+  tickInterval: 1

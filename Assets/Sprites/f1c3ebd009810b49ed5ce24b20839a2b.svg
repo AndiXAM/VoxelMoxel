@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<svg version="1.1" id="Layer_1" xmlns:x="&amp;ns_extend;" xmlns:i="&amp;ns_ai;" xmlns:graph="&amp;ns_graphs;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 295.5 315" style="enable-background:new 0 0 295.5 315;" xml:space="preserve">
+      <style type="text/css">.st0{fill:#F4112D;}	.st1{fill:#7C0826;}	.st2{fill:#FFFFFF;}</style>
+    <metadata>
+              <sfw>
+                      <slices/>
+            <sliceSourceBounds bottomLeftOrigin="true" height="315" width="295.5" x="0" y="0"/>
+                  </sfw>
+          </metadata>
+    <g id="color_index_3" fill="rgba(0, 0, 0, 1)">
+              <path d="M0,177.2c0-2.6,0-39.4,0-39.4h19.7V78.8h19.7V39.4h19.7V19.7h39.4V0H197v19.7h39.4v19.7h19.7v39.4h19.7v59.1h19.7v39.4&#x9;&#x9;h-19.7v19.7H256v19.7h-39.4l0,59.1H197v19.7h-19.7V315h-19.7v-19.7h-19.7V315h-19.7v-19.7H98.5v-19.7H78.8v-59.1H39.4v-19.7H19.7&#x9;&#x9;v-19.7L0,177.2L0,177.2z"/>
+          </g>
+    <g id="color_index_2" fill="rgba(244, 17, 45, 1)">
+              <path d="M256,157.5V98.4h-19.7V39.4h-39.4V19.7H98.5v39.4H78.8v19.7h19.7v19.7h19.7v39.4H98.5v-19.7H78.8v19.7l0,0&#x9;&#x9;h19.7v19.7h0v19.7h39.4v0h98.4v0H256v0h19.7v-19.7H256z M157.6,157.5h-19.7v-19.7h19.7L157.6,157.5L157.6,157.5z M216.6,157.5&#x9;&#x9;h-19.7v-19.7h19.7L216.6,157.5L216.6,157.5z M236.4,137.8h-19.7v-19.7h-19.7v19.7h-19.7V98.4h59.1V137.8z"/>
+          </g>
+    <g id="color_index_1" fill="rgba(124, 8, 38, 1)">
+              <rect x="98.5" y="19.7" width="19.7" height="19.7"/>
+        <polygon points="98.5,78.8 78.8,78.8 78.8,78.8 78.8,59.1 78.8,59.1 98.5,59.1 98.5,39.4 59.1,39.4 59.1,98.4 &#x9;&#x9;98.5,98.4 &#x9;"/>
+        <polygon points="118.2,157.5 118.2,137.8 98.5,137.8 98.5,137.8 98.5,137.8 98.5,137.8 98.5,157.5 78.8,157.5 &#x9;&#x9;78.8,137.8 78.8,137.8 59.1,137.8 59.1,98.4 39.4,98.4 39.4,157.5 19.7,157.5 19.7,177.2 177.2,177.2 177.2,157.5 &#x9;"/>
+          </g>
+    <g id="color_index_0" fill="rgba(255, 255, 255, 1)">
+              <rect x="98.5" y="196.9" width="19.7" height="59.1"/>
+        <rect x="137.9" y="196.9" width="19.7" height="59.1"/>
+        <rect x="177.3" y="196.9" width="19.7" height="59.1"/>
+        <rect x="78.8" y="118.1" width="19.7" height="19.7"/>
+        <rect x="196.9" y="118.1" width="19.7" height="19.7"/>
+          </g>
+  </svg>

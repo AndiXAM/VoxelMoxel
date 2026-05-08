@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BaseClassAvatarMask
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path: 
+    m_Weight: 1
+  - m_Path: Armature
+    m_Weight: 0
+  - m_Path: Armature/Root
+    m_Weight: 0
+  - m_Path: Armature/Root/Hand_L
+    m_Weight: 1
+  - m_Path: Armature/Root/Hand_L/Hand_L_end
+    m_Weight: 1
+  - m_Path: Armature/Root/Hand_R
+    m_Weight: 1
+  - m_Path: Armature/Root/Hand_R/Hand_R_end
+    m_Weight: 1
+  - m_Path: Armature/Root/Head
+    m_Weight: 0
+  - m_Path: Armature/Root/Head/Head_end
+    m_Weight: 1
+  - m_Path: Armature/Root/Leg_L
+    m_Weight: 0
+  - m_Path: Armature/Root/Leg_L/Leg_L_end
+    m_Weight: 1
+  - m_Path: Armature/Root/Leg_R
+    m_Weight: 0
+  - m_Path: Armature/Root/Leg_R/Leg_R_end
+    m_Weight: 1
+  - m_Path: Armature/Root/Tors
+    m_Weight: 1
+  - m_Path: Armature/Root/Tors/Tors_end
+    m_Weight: 1
+  - m_Path: Untitled
+    m_Weight: 0
