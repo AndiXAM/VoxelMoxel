@@ -62,11 +62,11 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    public void ShowPrompt(bool show, string actionName = "говорить")
+    public void ShowPrompt(bool show, string actionName = "talk")
     {
         if (isDialogueActive && show) return;
         promptPanel.SetActive(show);
-        if (show && promptText != null) promptText.text = $"Нажмите [E] чтобы {actionName}";
+        if (show && promptText != null) promptText.text = $"Press [E] to {actionName}";
     }
 
     public void StartDialogue(DialogueData newDialogue)
