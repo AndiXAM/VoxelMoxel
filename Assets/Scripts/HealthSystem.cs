@@ -4,6 +4,9 @@ using UnityEngine.UI;
 public class HealthSystem : MonoBehaviour, ISaveable
 {
     [SerializeField] StatsContainer playerStats;
+
+    [Header("Visual Effects")]
+    public DamageFlasher damageFlasher;
     
     [Header("Settings")]
     private float currentHealth; 
@@ -73,6 +76,15 @@ public class HealthSystem : MonoBehaviour, ISaveable
 
         // Обновляем интерфейс
         UpdateHealthBar();
+
+        // Вычисляем процент снесенного ХП (например: 20 урона / 100 макс = 0.2f)
+        float damagePercent = (float)damage / maxHealth;
+
+        // ВЫЗЫВАЕМ ВСПЫШКУ
+        if (damageFlasher != null && damage > 0)
+        {
+            damageFlasher.Flash(damagePercent);
+        }
 
         // Проверяем смерть
         if (currentHealth <= 0)

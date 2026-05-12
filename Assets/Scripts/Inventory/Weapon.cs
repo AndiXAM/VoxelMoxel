@@ -11,6 +11,9 @@ public class Weapon : Item
     
     [Tooltip("Сколько времени хитбокс АКТИВЕН и опасен")]
     public float attackDuration = 0.3f; 
+
+    [Tooltip("Сила ошеломления (1 = базовое замедление, 2 = сильное замедление тяжелым оружием)")]
+    public float impactPower = 1f; 
     
     [Tooltip("Кулдаун до следующего удара в комбо")]
     public float attackCooldown = 0.5f;

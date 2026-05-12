@@ -9,6 +9,9 @@ public class EnemyHealthSystem : MonoBehaviour
     [Header("Идентификатор Врага (Для Квестов)")]
     public EnemyData myEnemyType;
 
+    [Header("Visual Effects")]
+    public DamageFlasher damageFlasher;
+
     [Header("Смерть")]
     [Tooltip("Что удалить при смерти? Обычно это корень врага (gameObject)")]
     [SerializeField] private GameObject deathTarget;
@@ -38,6 +41,15 @@ public class EnemyHealthSystem : MonoBehaviour
     {
         // Защита от получения урона после смерти (чтобы лут не сыпался дважды)
         if (isDead) return;
+
+        // Вычисляем процент урона для врага
+        float damagePercent = (float)damage / maxHealth;
+
+        // ВЫЗЫВАЕМ ВСПЫШКУ
+        if (damageFlasher != null && damage > 0)
+        {
+            damageFlasher.Flash(damagePercent);
+        }
 
         // Отнимаем здоровье
         currentHealth -= damage;

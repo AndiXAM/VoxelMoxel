@@ -94,6 +94,8 @@ public class AdvancedEnemyAI : MonoBehaviour
     {
         if (target == null || combat == null || stats == null) return;
 
+        ApplyKnockback();
+
         float distanceToPlayer = Vector3.Distance(transform.position, target.position);
 
         SetWeaponState(distanceToPlayer <= drawWeaponRange);
@@ -267,9 +269,12 @@ public class AdvancedEnemyAI : MonoBehaviour
         {
             agent.isStopped = false;
             agent.SetDestination(target.position);
+            
             float currentSpeed = stats.MoveSpeed.Value;
             if (chaseTimer >= timeToRun) currentSpeed *= runSpeedMultiplier;
-            agent.speed = currentSpeed;
+            
+            // Замедление от импакта работает
+            agent.speed = currentSpeed * stats.ImpactSpeedMultiplier; 
         }
     }
 
@@ -453,5 +458,17 @@ public class AdvancedEnemyAI : MonoBehaviour
         yield return new WaitForSeconds(0.7f); // Удержанный блок
         stats.IsBlock = false;
         if (animator != null) animator.SetBool("IsBlocking", false);
+    }
+
+    private void ApplyKnockback()
+    {
+        // Не отбрасываем врага, если он прямо сейчас в фреймах неуязвимости (уворот)
+        if (currentState == AIState.Dodging) return;
+
+        // Если нас толкнули - принудительно сдвигаем агента
+        if (agent.isOnNavMesh && stats.CurrentKnockbackVelocity.sqrMagnitude > 0.1f)
+        {
+            agent.Move(stats.CurrentKnockbackVelocity * Time.deltaTime);
+        }
     }
 }

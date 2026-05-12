@@ -224,7 +224,7 @@ public class PlayerCombat : MonoBehaviour
         {
             // ЗАПИСЫВАЕМ ССЫЛКУ в старую переменную, чтобы не ломать PerformAttackRoutine!
             currentWeaponData.weaponHitbox = rightCol; 
-            SetupHitboxScript(rightCol, currentWeaponData.damage);
+            SetupHitboxScript(rightCol, currentWeaponData.damage, currentWeaponData.impactPower);
         }
 
         // 2. СОЗДАЕМ ЛЕВОЕ ОРУЖИЕ (Если двойное и указан отдельный префаб)
@@ -239,7 +239,7 @@ public class PlayerCombat : MonoBehaviour
             leftHandHitbox = FindHitbox(leftHandModelObject);
             if (leftHandHitbox != null)
             {
-                SetupHitboxScript(leftHandHitbox, currentWeaponData.damage);
+                SetupHitboxScript(leftHandHitbox, currentWeaponData.damage, currentWeaponData.impactPower);
             }
         }
         else
@@ -271,21 +271,16 @@ public class PlayerCombat : MonoBehaviour
         return null;
     }
 
-    private void SetupHitboxScript(Collider col, float damage)
+    private void SetupHitboxScript(Collider col, float damage, float impact) // Добавили параметр
     {
         col.enabled = false; 
-        
-        // Просто ИЩЕМ скрипт, который УЖЕ ДОЛЖЕН БЫТЬ на префабе
         Hitbox hitScript = col.GetComponent<Hitbox>();
         
         if (hitScript != null) 
         {
             hitScript.SetDamage(damage);
+            hitScript.currentImpactPower = impact; // Передаем импакт!
             hitScript.mainAudioSource = this.audioSource;
-        }
-        else
-        {
-            Debug.LogError($"[PlayerCombat] ОШИБКА: На префабе {col.gameObject.name} нет скрипта Hitbox!");
         }
     }
 

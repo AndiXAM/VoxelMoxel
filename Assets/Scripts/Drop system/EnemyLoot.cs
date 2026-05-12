@@ -52,24 +52,29 @@ public class EnemyLoot : MonoBehaviour
         droppedObj.name = "Drop_" + item.itemName;
         droppedObj.transform.localScale = Vector3.one;
 
-        // 1. ФИЗИКА (Чтобы падал)
+        // 1. ФИЗИКА
         Rigidbody rb = droppedObj.GetComponent<Rigidbody>();
         if (rb == null) rb = droppedObj.AddComponent<Rigidbody>();
         
         rb.mass = 1f;
-        rb.linearDamping = 1f;
-        rb.angularDamping = 1f;
+        // Чуть увеличим трение, чтобы они не катились как на льду
+        rb.linearDamping = 2f; 
+        rb.angularDamping = 2f;
 
-        // 2. ФИЗИЧЕСКИЙ КОЛЛАЙДЕР (Чтобы не провалился сквозь пол)
+        // --- ВОТ ГЛАВНОЕ ИСПРАВЛЕНИЕ БАГА! ---
+        // Заставляем Unity просчитывать траекторию полета непрерывно, чтобы не пробить пол
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; 
+
+        // 2. ФИЗИЧЕСКИЙ КОЛЛАЙДЕР
         bool hasSolidCollider = false;
         foreach (var col in droppedObj.GetComponentsInChildren<Collider>())
         {
             if (!col.isTrigger) 
             {
                 hasSolidCollider = true; 
-                // ИСПРАВЛЕНИЕ: Делаем существующий коллайдер крошечным!
-                if (col is BoxCollider box) box.size = new Vector3(0.1f, 0.1f, 0.1f);
-                if (col is SphereCollider sphere) sphere.radius = 0.1f;
+                // Увеличил размер с 0.1 до 0.25. Это самый безопасный минимум для Unity.
+                if (col is BoxCollider box) box.size = new Vector3(0.25f, 0.25f, 0.25f);
+                if (col is SphereCollider sphere) sphere.radius = 0.15f;
                 break;
             }
         }
@@ -77,8 +82,8 @@ public class EnemyLoot : MonoBehaviour
         if (!hasSolidCollider)
         {
             BoxCollider box = droppedObj.AddComponent<BoxCollider>();
-            // ИСПРАВЛЕНИЕ: Создаем крошечный коллайдер в центре
-            box.size = new Vector3(0.1f, 0.1f, 0.1f); 
+            // Увеличил размер
+            box.size = new Vector3(0.25f, 0.25f, 0.25f); 
         }
 
         // 3. СКРИПТ ПОДБОРА (Магнит)

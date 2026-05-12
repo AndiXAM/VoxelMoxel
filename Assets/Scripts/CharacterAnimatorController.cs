@@ -76,6 +76,18 @@ public class CharacterAnimatorController : MonoBehaviour
         }
     }
 
+    public void SetAnimationSpeedMultiplier(float multiplier)
+    {
+        if (characterAnimation != null)
+        {
+            // Ограничиваем, чтобы анимация не пошла в обратную сторону или не остановилась полностью 
+            // (если скорость 0, лучше оставить маленькое значение 0.1, чтобы кадры не замерзали)
+            multiplier = Mathf.Max(0.1f, multiplier);
+            
+            characterAnimation.SetFloat("AnimSpeedMultiplier", multiplier);
+        }
+    }
+
     public void StartDeath() 
     {
         if (characterAnimation != null)
@@ -88,4 +100,6 @@ public class CharacterAnimatorController : MonoBehaviour
     {
         characterAnimation.SetBool("Death", false);
     }
+
+
 }

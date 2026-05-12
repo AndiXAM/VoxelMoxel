@@ -48,7 +48,7 @@ public class AdvancedEnemyCombat : MonoBehaviour
         rightHandHitbox = FindHitbox(currentRightWeaponObj); // Ищем хитбокс
         if (rightHandHitbox != null)
         {
-            SetupHitboxScript(rightHandHitbox, weaponAsset.damage);
+            SetupHitboxScript(rightHandHitbox, weaponAsset.damage, weaponAsset.impactPower);
         }
 
         // --- Левая рука ---
@@ -59,7 +59,7 @@ public class AdvancedEnemyCombat : MonoBehaviour
             ResetTransform(currentLeftWeaponObj);
             
             leftHandHitbox = FindHitbox(currentLeftWeaponObj);
-            if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, weaponAsset.damage);
+            if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, weaponAsset.damage, weaponAsset.impactPower);
         }
 
         // --- Аниматор ---
@@ -147,16 +147,18 @@ public class AdvancedEnemyCombat : MonoBehaviour
         return null;
     }
 
-    private void SetupHitboxScript(Collider col, float damage)
+    private void SetupHitboxScript(Collider col, float damage, float impact) // Добавили параметр
+{
+    col.enabled = false; 
+    Hitbox hitScript = col.GetComponent<Hitbox>();
+    
+    if (hitScript != null) 
     {
-        col.enabled = false; 
-        EnemyHitbox hitScript = col.GetComponent<EnemyHitbox>();
-        if (hitScript != null) 
-        {
-            hitScript.SetDamage(damage);
-            hitScript.mainAudioSource = this.audioSource;
-        }
+        hitScript.SetDamage(damage);
+        hitScript.currentImpactPower = impact; // Передаем импакт!
+        hitScript.mainAudioSource = this.audioSource;
     }
+}
 
     private void ResetTransform(GameObject obj)
 {

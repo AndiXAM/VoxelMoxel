@@ -192,6 +192,16 @@ public class StatsContainer : MonoBehaviour, ISaveable
     [Header("Current Class")]
     public ClassData equippedClass; // Текущий надетый класс
 
+    [Header("Защита от Импакта (Stagger)")]
+    public Stat ImpactResistance = new Stat(0); // По умолчанию 0
+
+    // --- ПЕРЕМЕННЫЕ ИМПАКТА ДЛЯ ДВИЖЕНИЯ ---
+    [HideInInspector] public float ImpactSpeedMultiplier = 1f;
+    [HideInInspector] public Vector3 CurrentKnockbackVelocity = Vector3.zero; // Текущая сила отлета
+
+    private Coroutine impactCoroutine;
+    private Coroutine knockbackCoroutine;
+
     
 
     private void Awake()
@@ -277,5 +287,99 @@ public class StatsContainer : MonoBehaviour, ISaveable
             if (loadedClass != null) EquipClass(loadedClass);
             else Debug.LogWarning($"Не удалось найти класс {data.equippedClassName} в GameDatabase!");
         }
+    }
+
+    
+
+    // --- МЕТОД ПРИЕМА ИМПАКТА ---
+    public void TakeImpact(float attackerImpact, bool isBlocked, Vector3 attackerPosition)
+    {
+        float finalImpact = attackerImpact;
+
+        if (isBlocked)
+        {
+            finalImpact *= (1f - BlockEfficiency.BaseValue); 
+        }
+
+        finalImpact -= ImpactResistance.Value;
+        if (finalImpact <= 0) return;
+
+        Vector3 myActualPos = transform.position;
+        var cc = GetComponentInChildren<CharacterController>();
+        var agent = GetComponentInChildren<UnityEngine.AI.NavMeshAgent>();
+
+        if (cc != null) myActualPos = cc.transform.position;
+        else if (agent != null) myActualPos = agent.transform.position;
+        // ----------------------------------
+
+        Vector3 pushDirection = myActualPos - attackerPosition;
+        pushDirection.y = 0;
+        Vector3 finalDir = pushDirection.normalized;
+
+        // Обнови дебаг, чтобы видеть РЕАЛЬНУЮ позицию в логах
+        Debug.Log($"<color=white><b>[IMPACT LOG]</b></color>\n" +
+                  $"Жертва: {gameObject.name} (Позиция тела: {myActualPos})\n" +
+                  $"Позиция Атакующего: {attackerPosition}\n" +
+                  $"Вектор: {finalDir}");
+
+        if (impactCoroutine != null) StopCoroutine(impactCoroutine);
+        impactCoroutine = StartCoroutine(ImpactRoutine(Mathf.Min(finalImpact, 1f)));
+
+        if (finalImpact > 1f)
+        {
+            float knockbackForce = finalImpact - 1f;
+            if (knockbackCoroutine != null) StopCoroutine(knockbackCoroutine);
+            knockbackCoroutine = StartCoroutine(KnockbackRoutine(finalDir, knockbackForce));
+        }
+    }
+    private System.Collections.IEnumerator ImpactRoutine(float severity)
+    {
+        severity = Mathf.Clamp(severity, 0.1f, 1f);
+
+        // Фаза 1: Жесткое замедление (1.0 = скорость 0%)
+        ImpactSpeedMultiplier = 1f - severity;
+        ImpactSpeedMultiplier = Mathf.Clamp(ImpactSpeedMultiplier, 0.2f, 1f); // Минимум 20% скорости
+        
+        yield return new WaitForSeconds(0.5f * severity); // Оглушение длится до 0.5 сек
+
+        // Фаза 2: Плавное восстановление
+        float recoveryTime = 0.5f * severity; 
+        float timer = 0f;
+        float startMultiplier = ImpactSpeedMultiplier;
+
+        while (timer < recoveryTime)
+        {
+            timer += Time.deltaTime;
+            ImpactSpeedMultiplier = Mathf.Lerp(startMultiplier, 1f, timer / recoveryTime);
+            yield return null; 
+        }
+
+        ImpactSpeedMultiplier = 1f;
+        impactCoroutine = null;
+    }
+
+    private System.Collections.IEnumerator KnockbackRoutine(Vector3 direction, float force)
+    {
+        // 1. НАЧАЛЬНЫЙ ИМПУЛЬС
+        // Умножаем силу (force) на стартовый коэффициент. 
+        // Чем больше число, тем сильнее начальный рывок.
+        CurrentKnockbackVelocity = direction * force * 10f; 
+
+        // 2. ФАЗА ПЛАВНОГО СКОЛЬЖЕНИЯ (Friction)
+        // Пока скорость отбрасывания больше минимальной, мы плавно её гасим
+        while (CurrentKnockbackVelocity.sqrMagnitude > 0.1f)
+        {
+            // Vector3.Lerp делает затухание не линейным, а экспоненциальным.
+            // Число (Time.deltaTime * 3f) - это Сила Трения.
+            // Раньше тут стояло 10f (быстрое торможение). 
+            // Теперь 3f — персонаж будет скользить дольше и плавнее!
+            CurrentKnockbackVelocity = Vector3.Lerp(CurrentKnockbackVelocity, Vector3.zero, Time.deltaTime * 3f);
+            
+            yield return null; // Ждем один кадр
+        }
+
+        // 3. КОНЕЦ ОТБРАСЫВАНИЯ
+        CurrentKnockbackVelocity = Vector3.zero;
+        knockbackCoroutine = null;
     }
 }
