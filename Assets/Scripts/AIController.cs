@@ -211,10 +211,17 @@ public class MonsterAI : MonoBehaviour
 
     private void ApplyKnockback()
     {
-        // Если нас ударили с сильным импактом - принудительно сдвигаем агента
         if (agent.isOnNavMesh && stats.CurrentKnockbackVelocity.sqrMagnitude > 0.1f)
         {
+            // 1. Двигаем
             agent.Move(stats.CurrentKnockbackVelocity * Time.deltaTime);
+
+            // 2. Плавно гасим силу вектора
+            stats.CurrentKnockbackVelocity = Vector3.Lerp(stats.CurrentKnockbackVelocity, Vector3.zero, Time.deltaTime * 3f);
+        }
+        else
+        {
+            stats.CurrentKnockbackVelocity = Vector3.zero;
         }
     }
 }

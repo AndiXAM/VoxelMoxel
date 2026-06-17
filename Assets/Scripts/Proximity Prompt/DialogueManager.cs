@@ -37,6 +37,7 @@ public class DialogueManager : MonoBehaviour
     private int currentNodeIndex = 0;
     
     [HideInInspector] public bool isDialogueActive = false;
+    [HideInInspector] public Transform currentNPCTransform;
     private List<GameObject> activeChoiceButtons = new List<GameObject>();
 
     private void Awake()
@@ -69,9 +70,10 @@ public class DialogueManager : MonoBehaviour
         if (show && promptText != null) promptText.text = $"Press [E] to {actionName}";
     }
 
-    public void StartDialogue(DialogueData newDialogue)
+    public void StartDialogue(DialogueData newDialogue, Transform npcTransform = null)
     {
         currentDialogue = newDialogue;
+        currentNPCTransform = npcTransform;
         isDialogueActive = true;
 
         // --- ПОДТЯГИВАЕМ ГОЛОС ИМЕННО ЭТОГО NPC ---
@@ -196,5 +198,6 @@ public class DialogueManager : MonoBehaviour
         dialoguePanel.SetActive(false);
         ClearChoices();
         currentDialogue = null;
+        currentNPCTransform = null; // Забываем НПС
     }
 }

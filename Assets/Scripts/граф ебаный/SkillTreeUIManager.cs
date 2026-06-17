@@ -217,12 +217,14 @@ public class SkillTreeUIManager : MonoBehaviour, ISaveable
 
     public void ShowClassGraph()
     {
+        if (tooltip != null) tooltip.HideTooltip();
         classGraphPanel.SetActive(true);
         skillGraphPanel.SetActive(false);
     }
 
     public void ShowSkillGraph(ClassData classData)
     {
+        if (tooltip != null) tooltip.HideTooltip();
         classGraphPanel.SetActive(false);
         skillGraphPanel.SetActive(true);
         

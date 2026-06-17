@@ -46,8 +46,8 @@ public class Inventory : MonoBehaviour, ISaveable
         InitializeSlots(); 
         
         // 2. ТОЛЬКО ПОТОМ ДОБАВЛЯЕМ ПРЕДМЕТЫ
-        if (TESTWEAPON != null) AddItem(TESTWEAPON, 1);
-        if (TESTCONS != null) AddItem(TESTCONS, 5); 
+        //if (TESTWEAPON != null) AddItem(TESTWEAPON, 1);
+        //if (TESTCONS != null) AddItem(TESTCONS, 5); 
         
         UpdateUI();
         UpdateSelectedWeapon();

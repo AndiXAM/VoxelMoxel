@@ -32,6 +32,9 @@ public class ThirdPersonCam : MonoBehaviour
     public Vector3 battleCameraOffset = new Vector3(0.7f, 0f, 0f); // Сдвиг вправо (чтобы камера смотрела через левое плечо)
     public float offsetTransitionSpeed = 5f; // Скорость сдвига камеры
 
+    [Tooltip("Скорость плавного разворота к НПС во время диалога")]
+    public float dialogueRotationSpeed = 3f; // 3 - это очень плавная скорость, как у НПС
+
     private Vector3 originalLocalPosition;
 
     private string cameraMode = "freeCamera";
@@ -75,7 +78,7 @@ public class ThirdPersonCam : MonoBehaviour
 
     void Update()
     {
-        // 1. ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+        // 1. ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ (Как было)
         if (Input.GetKeyDown(KeyCode.C))
         {
             if (cameraMode == "freeCamera")
@@ -84,7 +87,6 @@ public class ThirdPersonCam : MonoBehaviour
                 ciac.enabled = true;
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
-                AimCanvas.SetActive(true);
             }
             else
             {
@@ -92,38 +94,55 @@ public class ThirdPersonCam : MonoBehaviour
                 ciac.enabled = false;
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-                AimCanvas.SetActive(false);
             }
         }
 
-        // 2. УПРАВЛЕНИЕ ОРИЕНТАЦИЕЙ ИГРОКА
-        if (cameraMode == "freeCamera")
+        // --- 2. ПРИОРИТЕТ ПОВОРОТА ДЛЯ ДИАЛОГА ---
+        // Если сейчас идет диалог и у нас есть ссылка на НПС
+        if (DialogueManager.Instance != null && DialogueManager.Instance.isDialogueActive && DialogueManager.Instance.currentNPCTransform != null)
         {
-            Vector3 viewDir = capsule.position - new Vector3(transform.position.x, capsule.position.y, transform.position.z);
-            orientation.forward = viewDir.normalized;
+            Vector3 dirToNPC = DialogueManager.Instance.currentNPCTransform.position - capsule.position;
+            dirToNPC.y = 0; 
 
-            float horizontalInput = Input.GetAxis("Horizontal");
-            float verticalInput = Input.GetAxis("Vertical");
-            Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
-
-            if (inputDir != Vector3.zero)
+            if (dirToNPC.sqrMagnitude > 0.001f)
             {
-                capsule.forward = Vector3.Slerp(capsule.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
+                // ИСПРАВЛЕНИЕ: Заменили rotationSpeed на dialogueRotationSpeed
+                capsule.forward = Vector3.Slerp(capsule.forward, dirToNPC.normalized, Time.deltaTime * dialogueRotationSpeed);
             }
-
-            if (Input.GetKey(KeyCode.Mouse1)) ciac.enabled = true;
-            if (Input.GetKeyUp(KeyCode.Mouse1)) ciac.enabled = false;
         }
-        else if (cameraMode == "battleCamera")
+        else // --- СТАНДАРТНАЯ ЛОГИКА КАМЕРЫ (Если диалога нет) ---
         {
-            Vector3 cameraForward = cameraTransform.forward;
-            cameraForward.y = 0;
-            cameraForward.Normalize();
+            if (cameraMode == "freeCamera")
+            {
+                Vector3 viewDir = capsule.position - new Vector3(transform.position.x, capsule.position.y, transform.position.z);
+                orientation.forward = viewDir.normalized;
 
-            capsule.forward = Vector3.Slerp(capsule.forward, cameraForward, Time.deltaTime * rotationSpeed);
+                float horizontalInput = Input.GetAxis("Horizontal");
+                float verticalInput = Input.GetAxis("Vertical");
+                Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
+
+                AimCanvas.SetActive(false);
+
+                if (inputDir != Vector3.zero)
+                {
+                    capsule.forward = Vector3.Slerp(capsule.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
+                }
+
+                if (Input.GetKey(KeyCode.Mouse1)) ciac.enabled = true;
+                if (Input.GetKeyUp(KeyCode.Mouse1)) ciac.enabled = false;
+            }
+            else if (cameraMode == "battleCamera")
+            {
+                Vector3 cameraForward = cameraTransform.forward;
+                cameraForward.y = 0;
+                cameraForward.Normalize();
+                AimCanvas.SetActive(true);
+                // Поворачиваемся по направлению камеры
+                capsule.forward = Vector3.Slerp(capsule.forward, cameraForward, Time.deltaTime * rotationSpeed);
+            }
         }
 
-        // 3. ЗУМ
+        // 3. ЗУМ (Как было)
         if (Input.GetAxis("Mouse ScrollWheel") > 0f && targetRadius < maxCameraRadius)
             targetRadius += 0.4f;
         else if (Input.GetAxis("Mouse ScrollWheel") < 0f && targetRadius > minCameraRadius)
@@ -131,11 +150,9 @@ public class ThirdPersonCam : MonoBehaviour
 
         COF.Radius = Mathf.Lerp(COF.Radius, targetRadius, Time.deltaTime * 10f);
 
-        // --- 4. СМЕЩЕНИЕ КАМЕРЫ ---
+        // 4. СМЕЩЕНИЕ КАМЕРЫ (Как было)
         if (cameraFollowTarget != null)
         {
-            // Если мы в бою, прибавляем сдвиг к стартовой позиции. 
-            // Если нет - возвращаемся к стартовой позиции (к голове).
             Vector3 desiredPosition = (cameraMode == "battleCamera") 
                 ? originalLocalPosition + battleCameraOffset 
                 : originalLocalPosition;
@@ -143,7 +160,7 @@ public class ThirdPersonCam : MonoBehaviour
             cameraFollowTarget.localPosition = Vector3.Lerp(cameraFollowTarget.localPosition, desiredPosition, Time.deltaTime * offsetTransitionSpeed);
         }
 
-        // 5. ПРОЗРАЧНОСТЬ
+        // 5. ПРОЗРАЧНОСТЬ (Как было)
         HandlePlayerTransparency();
     }
     private void HandlePlayerTransparency()

@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 09e467854e4c7624a8978359dffc6be6, type: 3}
-  m_Name: New Dialogue
+  m_Name: village chief
   m_EditorClassIdentifier: 
-  npcName: ' Village chief'
+  npcName: Village chief
   quest: {fileID: 11400000, guid: 5578819be07a2f04d8a04b0e58291c70, type: 2}
   typingSpeed: 0.05
   typingSound: {fileID: 8300000, guid: 44a6529b2046c4c4f8e72abf15af40e7, type: 3}
@@ -22,7 +22,7 @@ MonoBehaviour:
   completedNodeIndex: 4
   afterQuestNodeIndex: 5
   nodes:
-  - npcText: Hey I've never seen you here before.
+  - npcText: Hey! its you again!
     takeQuest: 0
     turnInQuest: 0
     forceEndDialogue: 0
@@ -55,7 +55,8 @@ MonoBehaviour:
     turnInQuest: 0
     forceEndDialogue: 1
     choices: []
-  - npcText: Thank you, here is your reward
+  - npcText: Thank you, here is your reward. I hope you haven't forgotten that you
+      have pockets? (Press I to open inventory)
     takeQuest: 0
     turnInQuest: 1
     forceEndDialogue: 1

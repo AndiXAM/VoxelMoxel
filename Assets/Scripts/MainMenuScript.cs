@@ -77,7 +77,7 @@ public class MainMenuScript : MonoBehaviour
     {
         savesPanel.SetActive(false);
         newGamePanel.SetActive(true);
-        saveNameInput.text = "Новый Мир"; 
+        saveNameInput.text = "New world"; 
     }
 
     // ================= ЛОГИКА СПИСКА СОХРАНЕНИЙ =================

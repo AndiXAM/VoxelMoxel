@@ -54,7 +54,6 @@ public class Hitbox : MonoBehaviour
         EnemyHealthSystem enemyHealth = other.GetComponentInParent<EnemyHealthSystem>();
         if (enemyHealth == null) return;
 
-        // --- УМНАЯ ЗАЩИТА ОТ ДВОЙНОГО УДАРА (по корню объекта) ---
         foreach (Collider c in hitColliders)
         {
             if (c != null && c.transform.root == other.transform.root) return;
@@ -71,55 +70,56 @@ public class Hitbox : MonoBehaviour
             bool isDodging = enemyStats.DodgeInviсible;
             bool isParrying = enemyStats.IsParry;
             bool isBlocking = enemyStats.IsBlock;
-            // Передаем позицию центра игрока
-            // Пытаемся найти позицию физического тела атакующего
-            Vector3 attackerPos = transform.position; // Запасной вариант (позиция меча)
 
-            // Ищем контроллер или агента "выше" по иерархии от меча
-            var parentCC = GetComponentInParent<CharacterController>();
-            var parentAgent = GetComponentInParent<UnityEngine.AI.NavMeshAgent>();
+            // --- ВЫЧИСЛЕНИЕ НАПРАВЛЕНИЯ ОТБРОСА ---
+            // Позиция тела врага (капсулы)
+            Vector3 victimPos = other.transform.position; 
+            
+            // Ищем позицию тела игрока (нашей капсулы с CharacterController)
+            Vector3 attackerPos = transform.position; // Фоллбэк
+            var cc = GetComponentInParent<CharacterController>();
+            if (cc != null) attackerPos = cc.transform.position;
 
-            if (parentCC != null) attackerPos = parentCC.transform.position;
-            else if (parentAgent != null) attackerPos = parentAgent.transform.position;
+            // Считаем чистый вектор "от Игрока к Врагу"
+            Vector3 pushDir = victimPos - attackerPos;
+            pushDir.y = 0; // Игнорируем высоту
+            pushDir.Normalize();
+            // ----------------------------------------
 
-            // --- 1. УКЛОНЕНИЕ ---
             if (isDodging)
             {
                 if (mainAudioSource != null && dodgedSound != null) mainAudioSource.PlayOneShot(dodgedSound);
             }
-            // --- 2. ПАРИРОВАНИЕ ---
             else if (isParrying)
             {
-                float efficiency = 1f; // 100% срез урона при парировании (или можно взять enemyStats.ParryEfficiency.Value)
+                float efficiency = 1f; 
                 int dmg = Mathf.RoundToInt(damageAmount * (1f - efficiency)); 
                 if (dmg > 0) enemyHealth.GetDamage(dmg);
                 
                 if (mainAudioSource != null && parrySound != null) mainAudioSource.PlayOneShot(parrySound);
-                // Импакт не накладывается
             }
-            // --- 3. БЛОК ---
             else if (isBlocking)
             {
-                float efficiency = 0.5f; // 50% срез (или можно взять enemyStats.BlockEfficiency.Value)
+                float efficiency = 0.5f; 
                 int dmg = Mathf.RoundToInt(damageAmount * (1f - efficiency));
                 if (dmg > 0) enemyHealth.GetDamage(dmg);
                 
                 if (mainAudioSource != null && BlockSound != null) mainAudioSource.PlayOneShot(BlockSound);
 
-                enemyStats.TakeImpact(currentImpactPower, true, attackerPos); // <--- НАКЛАДЫВАЕМ ИМПАКТ (В БЛОК)
+                // Передаем ГОТОВЫЙ вектор pushDir!
+                enemyStats.TakeImpact(currentImpactPower, true, pushDir); 
                 attackLanded = true; 
             }
-            // --- 4. ПРОСТОЙ УДАР ---
             else
             {
                 enemyHealth.GetDamage(Mathf.RoundToInt(damageAmount));
                 if (mainAudioSource != null && hitSound != null) mainAudioSource.PlayOneShot(hitSound);
 
-                enemyStats.TakeImpact(currentImpactPower, false, attackerPos); // <--- НАКЛАДЫВАЕМ ИМПАКТ (ЧИСТЫЙ)
+                // Передаем ГОТОВЫЙ вектор pushDir!
+                enemyStats.TakeImpact(currentImpactPower, false, pushDir); 
                 attackLanded = true; 
             }
 
-            // --- 5. ЭФФЕКТЫ ---
             if (enemyEffectManager != null && effectsToApply.Count > 0)
             {
                 ApplyEffectsLogic(enemyEffectManager, attackLanded, isDodging, isParrying, isBlocking);
@@ -127,11 +127,11 @@ public class Hitbox : MonoBehaviour
         }
         else
         {
-            // ЕСЛИ ВРАГ ТУПОЙ (Без StatsContainer)
             enemyHealth.GetDamage(Mathf.RoundToInt(damageAmount));
             if (mainAudioSource != null && hitSound != null) mainAudioSource.PlayOneShot(hitSound);
         }
     }
+
 
     // Вынес логику эффектов в отдельный защищенный метод, чтобы оба класса могли им пользоваться
     protected void ApplyEffectsLogic(StatusEffectManager manager, bool landed, bool dodge, bool parry, bool block)

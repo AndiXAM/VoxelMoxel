@@ -462,13 +462,21 @@ public class AdvancedEnemyAI : MonoBehaviour
 
     private void ApplyKnockback()
     {
-        // Не отбрасываем врага, если он прямо сейчас в фреймах неуязвимости (уворот)
         if (currentState == AIState.Dodging) return;
 
-        // Если нас толкнули - принудительно сдвигаем агента
         if (agent.isOnNavMesh && stats.CurrentKnockbackVelocity.sqrMagnitude > 0.1f)
         {
+            agent.ResetPath(); 
+            
+            // 1. Двигаем агента
             agent.Move(stats.CurrentKnockbackVelocity * Time.deltaTime);
+
+            // 2. ПЛАВНО ГАСИМ СИЛУ ВЕКТОРA в ИИ врага!
+            stats.CurrentKnockbackVelocity = Vector3.Lerp(stats.CurrentKnockbackVelocity, Vector3.zero, Time.deltaTime * 3f);
+        }
+        else
+        {
+            stats.CurrentKnockbackVelocity = Vector3.zero;
         }
     }
 }

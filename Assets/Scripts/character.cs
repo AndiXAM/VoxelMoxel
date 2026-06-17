@@ -37,22 +37,25 @@ public class Character : MonoBehaviour, ISaveable
 
     void Update()
     {
-        // 1. СБРОС СКОРОСТИ ПАДЕНИЯ
+        // 1. ОПТИМИЗАЦИЯ: Считываем статус земли ровно 1 раз за кадр
         IsGrounded = characterController.isGrounded;
+
         if (IsGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
         }
 
-        // 2. ВВОД
-        float x = Input.GetAxis("Horizontal");
-        float z = Input.GetAxis("Vertical");
+        // 2. ВВОД И НАПРАВЛЕНИЕ
+        float x = Input.GetAxisRaw("Horizontal"); // GetAxisRaw отзывчивее для клавиатуры
+        float z = Input.GetAxisRaw("Vertical");
 
         Vector3 moveInput = new Vector3(x, 0, z);
         if (moveInput.magnitude > 1) moveInput.Normalize();
 
-        Vector3 cameraForward = Camera.transform.forward;
-        Vector3 cameraRight = Camera.transform.right;
+        // ОПТИМИЗАЦИЯ: Убрали лишнее ".transform", так как Camera - это уже Transform!
+        Vector3 cameraForward = Camera.forward;
+        Vector3 cameraRight = Camera.right;
+        
         cameraForward.y = 0;
         cameraRight.y = 0;
         cameraForward.Normalize();
@@ -60,62 +63,63 @@ public class Character : MonoBehaviour, ISaveable
 
         Vector3 moveDir = cameraRight * moveInput.x + cameraForward * moveInput.z;
 
-        // 3. ЛОГИКА ДЭША (SHIFT)
+        // 3. РЫВОК (DASH)
         if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashCooldown)
         {
             StartCoroutine(DashRoutine());
         }
 
-        // Логика затухания инерции рывка
         if (dashFadeSpeed > 0)
         {
             dashFadeSpeed -= 10f * Time.deltaTime; 
             if (dashFadeSpeed < 0) dashFadeSpeed = 0;
         }
 
-        // 4. ДВИЖЕНИЕ (ФИНАЛЬНЫЙ РАСЧЕТ)
-        // Номинальная скорость (База + Спринт + Жесткий Дэш)
-        float nominalSpeed = playerStats.MoveSpeed.Value; 
-
-        // Итоговая скорость (С учетом затухания рывка и замедления от ударов)
-        float finalSpeed = (nominalSpeed + dashFadeSpeed) * playerStats.ImpactSpeedMultiplier;
-
-        // Применяем движение с учетом вектора отбрасывания!
-        Vector3 finalMoveVector = (moveDir * finalSpeed) + playerStats.CurrentKnockbackVelocity;
-        characterController.Move(finalMoveVector * Time.deltaTime);
-
-        // --- УПРАВЛЕНИЕ АНИМАЦИЕЙ ---
-        if (animController != null)
-        {
-            // Передаем множитель замедления в Аниматор, чтобы ноги двигались медленнее при получении удара
-            float animSpeed = playerStats.ImpactSpeedMultiplier;
-            animController.SetAnimationSpeedMultiplier(animSpeed);
-        }
-
-        // 5. ОБЫЧНЫЙ БЕГ (CTRL) - Переключатель
+        // 4. БЕГ (CTRL) - Переключатель
         if (Input.GetKeyDown(KeyCode.LeftControl))
         {
-            if (!IsRun)
-            {
-                IsRun = true;
-                playerStats.MoveSpeed.AddModifier(runBonus);
-            }
-            else
-            {
-                IsRun = false;
-                playerStats.MoveSpeed.RemoveModifier(runBonus);
-            }
+            IsRun = !IsRun;
+            if (IsRun) playerStats.MoveSpeed.AddModifier(runBonus);
+            else playerStats.MoveSpeed.RemoveModifier(runBonus);
         }
 
-        // 6. ПРЫЖОК
+        // 5. ПРЫЖОК
         if (Input.GetKeyDown(KeyCode.Space) && IsGrounded)
         {
             velocity.y = Mathf.Sqrt(playerStats.JumpHeight.Value * -2f * Gravity);
         }
 
-        // 7. ГРАВИТАЦИЯ
+        // 6. ГРАВИТАЦИЯ (Применяем ДО финального движения)
         velocity.y += Gravity * Time.deltaTime;
-        characterController.Move(velocity * Time.deltaTime);
+
+        // 7. РАСЧЕТ СКОРОСТЕЙ
+        float nominalSpeed = playerStats.MoveSpeed.Value; 
+        float finalSpeed = (nominalSpeed + dashFadeSpeed) * playerStats.ImpactSpeedMultiplier;
+
+        // 8. ПЛАВНОЕ ЗАТУХАНИЕ ОТБРОСА (Knockback)
+        Vector3 knockbackForce = Vector3.zero;
+        if (playerStats.CurrentKnockbackVelocity.sqrMagnitude > 0.1f)
+        {
+            knockbackForce = playerStats.CurrentKnockbackVelocity;
+            playerStats.CurrentKnockbackVelocity = Vector3.Lerp(playerStats.CurrentKnockbackVelocity, Vector3.zero, Time.deltaTime * 3f);
+        }
+        else
+        {
+            playerStats.CurrentKnockbackVelocity = Vector3.zero;
+        }
+
+        // --- ГЛАВНАЯ ОПТИМИЗАЦИЯ: ОБЪЕДИНЯЕМ ВСЕ СИЛЫ В ОДИН ВЕКТОР ---
+        // (Движение * Скорость) + Гравитация (velocity) + Отбрасывание (knockbackForce)
+        Vector3 finalMoveVector = (moveDir * finalSpeed) + velocity + knockbackForce;
+
+        // ОДИН единственный вызов физики на весь кадр!
+        characterController.Move(finalMoveVector * Time.deltaTime);
+
+        // 9. АНИМАЦИЯ (Только если есть контроллер)
+        if (animController != null)
+        {
+            animController.SetAnimationSpeedMultiplier(playerStats.ImpactSpeedMultiplier);
+        }
     }
 
     IEnumerator DashRoutine()

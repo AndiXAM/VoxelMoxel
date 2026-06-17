@@ -5,18 +5,23 @@ public class GameStartup : MonoBehaviour
 {
     private IEnumerator Start()
     {
-        // 1. Ждем ровно 1 кадр, чтобы ВСЕ скрипты (инвентарь, статы) успели сделать свой Awake() и Start().
-        // Иначе мы попытаемся загрузить данные в неинициализированные компоненты.
-        yield return null; 
+        yield return new WaitForEndOfFrame();
+        yield return new WaitForEndOfFrame();
 
-        // 2. Просим Менеджер Сохранений раздать данные!
-        if (SaveManager.Instance != null)
+        if (SaveManager.Instance != null && !string.IsNullOrEmpty(SaveManager.Instance.currentSaveFileName))
         {
             SaveManager.Instance.LoadGame();
-        }
-        else
-        {
-            Debug.LogWarning("SaveManager не найден! Игра начата с нуля (режим разработчика).");
+            
+            // --- ПРОВЕРКА НА НОВУЮ ИГРУ ---
+            // Если после загрузки класс игрока ПУСТОЙ, значит это новый мир!
+            if (SaveManager.Instance.currentSaveData.equippedClassName == "")
+            {
+                // Запускаем катсцену
+                if (IntroCutsceneManager.Instance != null)
+                {
+                    IntroCutsceneManager.Instance.StartCutscene();
+                }
+            }
         }
     }
 }
