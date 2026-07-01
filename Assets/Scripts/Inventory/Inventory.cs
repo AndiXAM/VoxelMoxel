@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// (Сюда вставляем класс InventorySlotData из Шага 2, если еще не вставил)
-
 public class Inventory : MonoBehaviour, ISaveable
 {
     [Header("Настройки Размера")]
@@ -10,6 +8,9 @@ public class Inventory : MonoBehaviour, ISaveable
     public int mainInventoryColumns = 9;  
     
     public int TotalSlots => hotbarSlotsCount + (mainInventoryRows * mainInventoryColumns);
+    
+    // Снаряжение занимает еще 4 слота в конце массива slotsData
+    public int TotalSlotsWithEquipment => TotalSlots + 4;
     public int selectedSlotIndex = 0;
     
     [Header("UI Ссылки")]
@@ -17,23 +18,38 @@ public class Inventory : MonoBehaviour, ISaveable
     public Transform hotbarParent;        
     public Transform mainInventoryParent; 
     public GameObject slotPrefab;
+
+    [Header("Слоты Снаряжения на UI")]
+    public EquipmentSlotUI helmetSlotUI;
+    public EquipmentSlotUI chestplateSlotUI;
+    public EquipmentSlotUI bootsSlotUI;
+    public EquipmentSlotUI weaponSlotUI; // Ссылка на новый слот оружия в инвентаре UI
+    [HideInInspector] public bool isWeaponSlotUnlocked = false; // Открыт ли слот пассивкой?
     
     [Header("Ссылки на Системы")]
     public PlayerCombat playerCombat;
     public PlayerConsumables playerConsumables;
+    public StatsContainer statsContainer; // Ссылка на характеристики для наложения бонусов брони
 
     [Header("Тестовые предметы")]
     public Item TESTWEAPON; 
     public Item TESTCONS;
 
-    // --- ВАЖНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ---
-    public InventorySlotData[] slotsData; // Массив КОНТЕЙНЕРОВ
+    public InventorySlotData[] slotsData; // Массив контейнеров (теперь включает снаряжение)
     private SlotUI[] uiSlots;
+
+    // Переменные для отслеживания текущего надетого снаряжения (чтобы вовремя снимать баффы)
+    private Equipment equippedHelmet;
+    private Equipment equippedChestplate;
+    private Equipment equippedBoots;
+
+    
 
     private void Start()
     {
-        slotsData = new InventorySlotData[TotalSlots];
-        uiSlots = new SlotUI[TotalSlots];
+        // Выделяем память с учетом 3 слотов снаряжения
+        slotsData = new InventorySlotData[TotalSlotsWithEquipment];
+        uiSlots = new SlotUI[TotalSlotsWithEquipment];
 
         for (int i = 0; i < slotsData.Length; i++)
         {
@@ -42,24 +58,18 @@ public class Inventory : MonoBehaviour, ISaveable
 
         if (inventoryWindow != null) inventoryWindow.SetActive(false);
 
-        // 1. СНАЧАЛА СОЗДАЕМ СЛОТЫ (КРИТИЧЕСКИ ВАЖНО!)
         InitializeSlots(); 
-        
-        // 2. ТОЛЬКО ПОТОМ ДОБАВЛЯЕМ ПРЕДМЕТЫ
-        //if (TESTWEAPON != null) AddItem(TESTWEAPON, 1);
-        //if (TESTCONS != null) AddItem(TESTCONS, 5); 
-        
         UpdateUI();
         UpdateSelectedWeapon();
     }
 
     private void InitializeSlots()
     {
+        // 1. Создаем стандартные ячейки хотбара и инвентаря
         for (int i = 0; i < TotalSlots; i++)
         {
             Transform parentToUse = (i < hotbarSlotsCount) ? hotbarParent : mainInventoryParent;
 
-            // Если родителя нет - выдаем ошибку, чтобы сразу найти причину
             if (parentToUse == null)
             {
                 Debug.LogError($"[ИНВЕНТАРЬ] Не назначен Hotbar Parent или Main Inventory Parent в инспекторе!");
@@ -70,9 +80,30 @@ public class Inventory : MonoBehaviour, ISaveable
             SlotUI slot = slotObj.GetComponent<SlotUI>();
             
             slot.Initialize(i, this);
-            
-            // ВАЖНО: Записываем созданный слот в массив!
             uiSlots[i] = slot; 
+        }
+
+        // 2. Инициализируем статичные слоты снаряжения, которые мы настроили в UI вручную
+        if (helmetSlotUI != null)
+        {
+            helmetSlotUI.Initialize(TotalSlots, this); // Индекс: TotalSlots
+            uiSlots[TotalSlots] = helmetSlotUI;
+        }
+        if (chestplateSlotUI != null)
+        {
+            chestplateSlotUI.Initialize(TotalSlots + 1, this); // Индекс: TotalSlots + 1
+            uiSlots[TotalSlots + 1] = chestplateSlotUI;
+        }
+        if (bootsSlotUI != null)
+        {
+            bootsSlotUI.Initialize(TotalSlots + 2, this); // Индекс: TotalSlots + 2
+            uiSlots[TotalSlots + 2] = bootsSlotUI;
+        }
+        if (weaponSlotUI != null)
+        {
+            weaponSlotUI.Initialize(TotalSlots + 3, this); // Индекс: TotalSlots + 3
+            uiSlots[TotalSlots + 3] = weaponSlotUI;
+            weaponSlotUI.gameObject.SetActive(isWeaponSlotUnlocked); // Скрываем/показываем на UI
         }
     }
 
@@ -84,16 +115,12 @@ public class Inventory : MonoBehaviour, ISaveable
 
     private void HandleInventoryToggle()
     {
-        // Открытие/Закрытие инвентаря на кнопку I
         if (Input.GetKeyDown(KeyCode.I))
         {
             if (inventoryWindow != null)
             {
                 bool isOpen = !inventoryWindow.activeSelf;
                 inventoryWindow.SetActive(isOpen);
-                
-                // (Опционально) Если хочешь, чтобы при открытом инвентаре мышка освобождалась,
-                // а камера останавливалась, здесь нужно менять Cursor.lockState
             }
         }
     }
@@ -102,7 +129,6 @@ public class Inventory : MonoBehaviour, ISaveable
     {
         int previousSlot = selectedSlotIndex;
         
-        // Цифры 1-9 переключают ТОЛЬКО слоты хотбара (индексы от 0 до 8)
         for (int i = 0; i < hotbarSlotsCount; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
@@ -118,6 +144,36 @@ public class Inventory : MonoBehaviour, ISaveable
         }
     }
 
+    // --- ВАЛИДАЦИЯ ПЕРЕМЕЩЕНИЯ ПРЕДМЕТОВ ---
+    private bool CanPlaceInSlot(Item item, int targetSlotIndex)
+    {
+        // Пустоту всегда можно положить (освободить слот)
+        if (item == null) return true;
+
+        // Если это ячейка шлема
+        if (targetSlotIndex == TotalSlots)
+        {
+            return item is Equipment equip && equip.slotType == EquipmentSlot.Helmet;
+        }
+        // Если это ячейка нагрудника
+        if (targetSlotIndex == TotalSlots + 1)
+        {
+            return item is Equipment equip && equip.slotType == EquipmentSlot.Chestplate;
+        }
+        // Если это ячейка ботинок
+        if (targetSlotIndex == TotalSlots + 2)
+        {
+            return item is Equipment equip && equip.slotType == EquipmentSlot.Boots;
+        }
+         // Если это ячейка оружия класса
+        if (targetSlotIndex == TotalSlots + 3)
+        {
+            if (!isWeaponSlotUnlocked) return false; // Слот закрыт пассивкой!
+            return item is Weapon; // Класть можно только оружие
+        }
+        // В любые обычные ячейки (хотбар и инвентарь) можно класть абсолютно всё
+        return true;
+    }
 
     // --- ЛОГИКА DRAG AND DROP ---
     public void SwapItems(int fromIndex, int toIndex)
@@ -125,7 +181,14 @@ public class Inventory : MonoBehaviour, ISaveable
         InventorySlotData fromSlot = slotsData[fromIndex];
         InventorySlotData toSlot = slotsData[toIndex];
 
-        // ЛОГИКА СЛИЯНИЯ СТАКОВ (Если перетащили зелье на зелье)
+        // ВАЛИДАЦИЯ: Проверяем, соответствуют ли предметы типам слотов снаряжения
+        if (!CanPlaceInSlot(fromSlot.item, toIndex) || !CanPlaceInSlot(toSlot.item, fromIndex))
+        {
+            Debug.LogWarning("[ИНВЕНТАРЬ] Неподходящий тип снаряжения для этого слота!");
+            return; // Отменяем перемещение
+        }
+
+        // Логика слияния стаков
         if (!fromSlot.IsEmpty && !toSlot.IsEmpty && fromSlot.item.itemName == toSlot.item.itemName)
         {
             if (toSlot.item.maxStackSize > 1)
@@ -139,12 +202,12 @@ public class Inventory : MonoBehaviour, ISaveable
                     
                     UpdateUI();
                     if (fromIndex == selectedSlotIndex || toIndex == selectedSlotIndex) UpdateSelectedWeapon();
-                    return; // Успешно слили, выходим
+                    return; 
                 }
             }
         }
 
-        // Если предметы разные или стак полон - ПРОСТО МЕНЯЕМ МЕСТАМИ
+        // Смена предметов местами
         InventorySlotData temp = new InventorySlotData(slotsData[toIndex].item, slotsData[toIndex].amount);
         
         slotsData[toIndex].item = slotsData[fromIndex].item;
@@ -152,6 +215,18 @@ public class Inventory : MonoBehaviour, ISaveable
         
         slotsData[fromIndex].item = temp.item;
         slotsData[fromIndex].amount = temp.amount;
+
+        // Если в перемещении участвовали слоты снаряжения, пересчитываем характеристики персонажа
+        if (fromIndex >= TotalSlots || toIndex >= TotalSlots)
+        {
+            UpdateEquipmentStats();
+            
+            // Если изменилось оружие в экипировке класса, обновляем визуал оружия в руках
+            if (fromIndex == TotalSlots + 3 || toIndex == TotalSlots + 3)
+            {
+                UpdateSelectedWeapon();
+            }
+        }
 
         UpdateUI();
 
@@ -161,17 +236,68 @@ public class Inventory : MonoBehaviour, ISaveable
         }
     }
 
-    // --- ЛОГИКА ДОБАВЛЕНИЯ ПРЕДМЕТОВ ---
+    // --- ПЕРЕСЧЕТ ХАРАКТЕРИСТИК ОТ БРОНИ ---
+    private void UpdateEquipmentStats()
+    {
+        if (statsContainer == null) return;
+
+        // 1. Снимаем старые бонусы
+        RemoveEquipmentModifiers(equippedHelmet);
+        RemoveEquipmentModifiers(equippedChestplate);
+        RemoveEquipmentModifiers(equippedBoots);
+
+        // 2. Получаем новые ссылки на надетое снаряжение
+        equippedHelmet = slotsData[TotalSlots].item as Equipment;
+        equippedChestplate = slotsData[TotalSlots + 1].item as Equipment;
+        equippedBoots = slotsData[TotalSlots + 2].item as Equipment;
+
+        // 3. Накладываем новые бонусы характеристик
+        ApplyEquipmentModifiers(equippedHelmet);
+        ApplyEquipmentModifiers(equippedChestplate);
+        ApplyEquipmentModifiers(equippedBoots);
+    }
+
+    private void ApplyEquipmentModifiers(Equipment equip)
+    {
+        if (equip == null || statsContainer == null) return;
+
+        // Просто проходим по списку и накладываем все статы (включая броню)
+        foreach (var modifier in equip.statModifiers)
+        {
+            Stat stat = statsContainer.GetStat(modifier.statType);
+            if (stat != null)
+            {
+                stat.AddModifier(new StatModifier(modifier.value, modifier.modType, equip));
+            }
+        }
+    }
+
+
+    private void RemoveEquipmentModifiers(Equipment equip)
+    {
+        if (equip == null || statsContainer == null) return;
+
+        // Удаляем все модификаторы по источнику предмета снаряжения
+        foreach (var modifier in equip.statModifiers)
+        {
+            Stat stat = statsContainer.GetStat(modifier.statType);
+            if (stat != null)
+            {
+                stat.RemoveAllModifiersFromSource(equip);
+            }
+        }
+    }
+
     public void AddItem(Item newItem, int amountToAdd = 1)
     {
         if (newItem == null) return;
 
         int amountLeft = amountToAdd;
 
-        // 1. Пытаемся найти неполный стак ТАКОГО ЖЕ предмета
         if (newItem.maxStackSize > 1)
         {
-            for (int i = 0; i < slotsData.Length; i++)
+            // Пытаемся найти неполный стак (проверяем только стандартные слоты инвентаря, исключая снаряжение!)
+            for (int i = 0; i < TotalSlots; i++)
             {
                 if (!slotsData[i].IsEmpty && slotsData[i].item.itemName == newItem.itemName)
                 {
@@ -182,7 +308,7 @@ public class Inventory : MonoBehaviour, ISaveable
                         slotsData[i].AddAmount(amountToPush);
                         amountLeft -= amountToPush;
 
-                        if (amountLeft <= 0) // Все поместилось!
+                        if (amountLeft <= 0) 
                         {
                             UpdateUI();
                             return;
@@ -192,11 +318,11 @@ public class Inventory : MonoBehaviour, ISaveable
             }
         }
 
-        // 2. Если остались предметы (или они не стакаются) - ищем ПУСТЫЕ слоты
         while (amountLeft > 0)
         {
             int emptyIndex = -1;
-            for (int i = 0; i < slotsData.Length; i++)
+            // Ищем свободные ячейки только в обычном инвентаре (не в снаряжении)
+            for (int i = 0; i < TotalSlots; i++)
             {
                 if (slotsData[i].IsEmpty)
                 {
@@ -215,7 +341,7 @@ public class Inventory : MonoBehaviour, ISaveable
             else
             {
                 Debug.LogWarning("Инвентарь полон! Не влезло: " + amountLeft);
-                break; // Мест нет, выходим из цикла
+                break; 
             }
         }
 
@@ -223,7 +349,6 @@ public class Inventory : MonoBehaviour, ISaveable
         UpdateSelectedWeapon();
     }
 
-    // --- УДАЛЕНИЕ (Для расходников) ---
     public void RemoveCurrentItem(int amountToRemove = 1)
     {
         if (!slotsData[selectedSlotIndex].IsEmpty)
@@ -248,6 +373,12 @@ public class Inventory : MonoBehaviour, ISaveable
             if (!slotsData[slotIndex].IsEmpty)
             {
                 slotsData[slotIndex].RemoveAmount(amountToRemove); 
+                
+                if (slotIndex >= TotalSlots)
+                {
+                    UpdateEquipmentStats();
+                }
+                
                 UpdateUI();              
                 
                 if (slotIndex == selectedSlotIndex && slotsData[slotIndex].IsEmpty)
@@ -260,7 +391,6 @@ public class Inventory : MonoBehaviour, ISaveable
         }
     }
 
-    // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
     public bool HasItem(Item itemToCheck)
     {
         if (itemToCheck == null) return false;
@@ -274,11 +404,11 @@ public class Inventory : MonoBehaviour, ISaveable
     public int GetItemCount()
     {
         int count = 0;
-        for (int i = 0; i < slotsData.Length; i++)
+        for (int i = 0; i < TotalSlots; i++) // Считаем только заполненные ячейки основного инвентаря
         {
             if (!slotsData[i].IsEmpty) count++;
         }
-        return count; // Считает занятые СЛОТЫ, а не общее количество предметов
+        return count; 
     }
 
     public Item GetSelectedItem()
@@ -311,7 +441,10 @@ public class Inventory : MonoBehaviour, ISaveable
     {
         for (int i = 0; i < uiSlots.Length; i++)
         {
-            uiSlots[i].SetItem(slotsData[i]); // ПЕРЕДАЕМ КОНТЕЙНЕР!
+            if (uiSlots[i] != null)
+            {
+                uiSlots[i].SetItem(slotsData[i]); 
+            }
         }
         UpdateUISelection();
     }
@@ -320,26 +453,26 @@ public class Inventory : MonoBehaviour, ISaveable
     {
         if (uiSlots == null) return;
 
-        for (int i = 0; i < uiSlots.Length; i++)
+        for (int i = 0; i < TotalSlots; i++) // Выделение рамкой работает только для хотбара/инвентаря
         {
             if (uiSlots[i] != null)
             {
-                // Передаем true ТОЛЬКО если индекс слота (i) совпадает с выбранным (selectedSlotIndex)
                 uiSlots[i].SetSelected(i == selectedSlotIndex);
             }
         }
     }
 
-    // --- ИНТЕРФЕЙС СОХРАНЕНИЯ ---
+    // --- СОХРАНЕНИЯ ---
     public void SaveData(SaveData data)
     {
         data.selectedSlotIndex = this.selectedSlotIndex;
 
+        // Внимание: Массивы сохранения автоматически запишут и слоты снаряжения, так как slotsData.Length теперь равен TotalSlots + 3!
         for (int i = 0; i < slotsData.Length; i++)
         {
             if (!slotsData[i].IsEmpty)
             {
-                data.inventoryItemNames[i] = slotsData[i].item.name; // Имя файла (ScriptableObject)
+                data.inventoryItemNames[i] = slotsData[i].item.name; 
                 data.inventoryItemAmounts[i] = slotsData[i].amount;
             }
             else
@@ -356,9 +489,10 @@ public class Inventory : MonoBehaviour, ISaveable
 
         for (int i = 0; i < data.inventoryItemNames.Length; i++)
         {
+            if (i >= slotsData.Length) break; // Защита на случай несовпадения версий сейвов
+
             if (!string.IsNullOrEmpty(data.inventoryItemNames[i]))
             {
-                // БЕРЕМ ИЗ БАЗЫ ДАННЫХ!
                 Item loadedItem = SaveManager.Instance.database.GetItemByName(data.inventoryItemNames[i]);
                 
                 if (loadedItem != null) slotsData[i] = new InventorySlotData(loadedItem, data.inventoryItemAmounts[i]);
@@ -370,7 +504,82 @@ public class Inventory : MonoBehaviour, ISaveable
             }
         }
 
+        // Пересчитываем баффы статов на случай, если при загрузке на персонаже было снаряжение
+        UpdateEquipmentStats();
+
         UpdateUI();
         UpdateSelectedWeapon(); 
+    }
+
+    // 1. Возвращает суммарное количество конкретного предмета во всех слотах инвентаря
+    public int GetItemTotalCount(Item itemToCheck)
+    {
+        if (itemToCheck == null) return 0;
+        
+        int total = 0;
+        for (int i = 0; i < slotsData.Length; i++)
+        {
+            if (!slotsData[i].IsEmpty && slotsData[i].item.itemName == itemToCheck.itemName)
+            {
+                total += slotsData[i].amount;
+            }
+        }
+        return total;
+    }
+
+    // 2. Списывает определенное количество предметов из инвентаря (поддерживает списывание из разных стаков)
+    // Возвращает true, если списание прошло успешно, и false, если предметов не хватило.
+    public bool RemoveItemTotal(Item itemToRemove, int amountToRemove)
+    {
+        if (itemToRemove == null || amountToRemove <= 0) return false;
+
+        // Проверяем, хватает ли вообще предметов перед началом списания
+        int totalHas = GetItemTotalCount(itemToRemove);
+        if (totalHas < amountToRemove) return false;
+
+        int leftToRemove = amountToRemove;
+
+        // Постепенно забираем предметы из заполненных слотов
+        for (int i = 0; i < slotsData.Length; i++)
+        {
+            if (!slotsData[i].IsEmpty && slotsData[i].item.itemName == itemToRemove.itemName)
+            {
+                if (slotsData[i].amount > leftToRemove)
+                {
+                    // В этом слоте предметов больше, чем осталось списать
+                    slotsData[i].RemoveAmount(leftToRemove);
+                    leftToRemove = 0;
+                    break; // Списание завершено
+                }
+                else
+                {
+                    // Забираем весь этот стак целиком и ищем дальше
+                    leftToRemove -= slotsData[i].amount;
+                    slotsData[i].RemoveAmount(slotsData[i].amount);
+                }
+            }
+        }
+
+        // Обновляем визуальное отображение
+        UpdateEquipmentStats();
+        UpdateUI();
+        UpdateSelectedWeapon();
+
+        return true;
+    }
+    public void SetWeaponSlotUnlockState(bool unlocked)
+    {
+        isWeaponSlotUnlocked = unlocked;
+        if (weaponSlotUI != null)
+        {
+            weaponSlotUI.gameObject.SetActive(unlocked);
+        }
+    }
+
+    // Безопасное получение оружия из слота класса
+    public Weapon GetEquippedWeaponInSlot()
+    {
+        if (slotsData == null || slotsData.Length <= TotalSlots + 3) return null;
+        return slotsData[TotalSlots + 3].item as Weapon;
     }
 }

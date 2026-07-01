@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be32d5a970f1e954da7a947858a50453, type: 3}
+  m_Name: sword
+  m_EditorClassIdentifier: 
+  itemName: Sword
+  icon: {fileID: 21300000, guid: 9f6aae5ea0c80534f99609d33e4975fb, type: 3}
+  prefab: {fileID: 8827913619174035059, guid: 50a1b229cc209b44982fc2afae51b3fd, type: 3}
+  maxStackSize: 1
+  animSpeedMultiplier: 2
+  damage: 10
+  attackWindup: 1.17
+  attackDuration: 0.67
+  impactPower: 1
+  attackCooldown: 2
+  recoveryDelay: 0.67
+  comboLength: 2
+  resetTime: 1.2
+  isDualWeapon: 0
+  offHandPrefab: {fileID: 0}
+  leftHandChildObject: {fileID: 0}
+  weaponHitbox: {fileID: 0}
+  attackSound: {fileID: 8300000, guid: f1781b85c23eb9d48ba66e915e509c51, type: 3}
+  weaponAnimatorOverride: {fileID: 22100000, guid: 43c349b0cfde93745b7c30223c08a6b3, type: 2}

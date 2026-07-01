@@ -3,6 +3,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Weapon", menuName = "RPG/Items/Weapon")]
 public class Weapon : Item
 {
+    [Header("Animation Speed")]
+    [Tooltip("Множитель скорости анимации для этого оружия (1 = норма, 1.5 = быстрее, 0.7 = медленнее)")]
+    public float animSpeedMultiplier = 1f;
+    
     [Header("Weapon Settings")]
     public float damage = 10f;
     
@@ -17,6 +21,9 @@ public class Weapon : Item
     
     [Tooltip("Кулдаун до следующего удара в комбо")]
     public float attackCooldown = 0.5f;
+
+    [Tooltip("время во время которого анимается еще проигрывается, но её можно срезать")]
+    public float recoveryDelay = 0f; 
     
     [Header("Combo Settings")]
     public int comboLength = 3; 
@@ -34,4 +41,8 @@ public class Weapon : Item
     [Header("Components")]
     public AudioClip attackSound;
     public AnimatorOverrideController weaponAnimatorOverride; 
+
+    [Header("Skill Weapon Settings")]
+    [Tooltip("Если включено, это оружие-способность (Slash), копирующее статы оружия из слота снаряжения")]
+    public bool isSkillWeapon = false;
 }

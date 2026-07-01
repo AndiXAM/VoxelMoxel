@@ -16,12 +16,18 @@ public class PlayerCombat : MonoBehaviour
     private Weapon currentWeaponData; // Скрипт на ПРАВОЙ руке (Корень)
     
     private GameObject currentWeaponObject;   // Объект корня (в правой руке)
-
-    private GameObject leftHandModelObject; 
+    private GameObject leftHandModelObject;   // Объект левой руки
     
     private Collider leftHandHitbox; // Хитбокс левой руки
 
+    // --- ТРЕЙЛЫ ОРУЖИЯ ---
+    private TrailRenderer rightHandTrail;
+    private TrailRenderer leftHandTrail;
+
     private RuntimeAnimatorController defaultAnimatorController;
+
+    private Coroutine attackCoroutine; // Ссылка на запущенную корутину удара
+    private bool canChainAttack = false; // Открыто ли окно для следующего комбо-удара?
 
     [SerializeField] StatsContainer playerStats;
 
@@ -48,47 +54,48 @@ public class PlayerCombat : MonoBehaviour
 
     private void Update()
     {
-        if (isSwinging) return;
+        // Разрешаем ввод, если мы не бьем ИЛИ если мы находимся в окне комбо-среза
+        if (isSwinging && !canChainAttack) return;
+
         HandleBlock();
         HandleComboReset();
-        if (Input.GetMouseButtonDown(0) && !isBlocking) TryAttack();
+        
+        if (Input.GetMouseButtonDown(0) && !isBlocking)
+        {
+            TryAttack();
+        }
     }
-
-    
 
     private void HandleBlock()
     {
         if (currentWeaponData == null) return; 
-        
         bool blockInput = Input.GetKey(KeyCode.F);
-
-        // Если состояние изменилось (нажали ИЛИ отпустили)
+        
         if (blockInput != isBlocking)
         {
             isBlocking = blockInput;
-            
-            // 1. Синхронизируем флаг блока в статах с нашим локальным состоянием
             playerStats.IsBlock = isBlocking;
             
-            // 2. Анимация
-            if (characterAnimator != null) 
-            {
-                characterAnimator.SetBool("IsBlocking", isBlocking);
-            }
-
-            // 3. Запускаем парирование ТОЛЬКО если мы НАЖАЛИ блок (а не отпустили)
             if (isBlocking)
             {
+                // --- МГНОВЕННЫЙ СРЕЗ ВОЗВРАТА РУКИ В БЛОК ---
+                if (isSwinging && attackCoroutine != null)
+                {
+                    StopCoroutine(attackCoroutine); // Останавливаем корутину возврата
+                    isSwinging = false;
+                    canChainAttack = false;
+                    attackCoroutine = null;
+                }
+
                 StartCoroutine(ParryRoutine());
             }
+            
+            if (characterAnimator != null) characterAnimator.SetBool("IsBlocking", isBlocking);
         }
-        
-        // Строчку playerStats.IsBlock = false; отсюда УДАЛЯЕМ полностью!
     }
 
     IEnumerator ParryRoutine()
     {
-        // Если нет усталости (кулдауна) на парирование
         if (!playerStats.ParryFatige)
         {
             playerStats.IsParry = true; // Окно парирования открыто
@@ -97,87 +104,106 @@ public class PlayerCombat : MonoBehaviour
             
             playerStats.IsParry = false; // Окно закрылось
 
-            
             if (playerStats.ParryFatige)
             {
-            StartCoroutine(ParryCooldownRoutine()); 
+                StartCoroutine(ParryCooldownRoutine()); 
             }
         }
     }
 
     IEnumerator ParryCooldownRoutine()
     {
-        // Примерно так должен выглядеть твой кулдаун
         yield return new WaitForSeconds(2f); // Ждем 2 секунды
         playerStats.ParryFatige = false;     // Снова можем парировать
     }
 
     private void HandleComboReset()
     {
-        float resetTime = (currentWeaponData != null) ? currentWeaponData.resetTime : 1.0f;
+        // Считываем статы (включая resetTime) с актуального оружия
+        Weapon activeWeapon = GetActiveWeaponToUse();
+        float resetTime = (activeWeapon != null) ? activeWeapon.resetTime : 1.0f;
+        
         if (Time.time - lastAttackTime > resetTime) currentComboStep = 0;
     }
 
-    private void TryAttack()
+    public void TryAttack()
     {
-        if (currentWeaponData == null) return;
-        if (Time.time - lastAttackTime < currentWeaponData.attackCooldown) return;
-        StartCoroutine(PerformAttackRoutine(currentWeaponData.comboLength));
+        Weapon activeWeapon = GetActiveWeaponToUse(); 
+        if (activeWeapon == null) return;
+        if (isSwinging && !canChainAttack) return;
+
+        float speedMult = activeWeapon.animSpeedMultiplier > 0 ? activeWeapon.animSpeedMultiplier : 1f;
+        float actualCooldown = activeWeapon.attackCooldown / speedMult;
+
+        if (Time.time - lastAttackTime < actualCooldown) return;
+
+        if (attackCoroutine != null)
+        {
+            StopCoroutine(attackCoroutine);
+            // Физический хитбокс выключаем у реального оружия в руках (currentWeaponData)
+            if (currentWeaponData != null && currentWeaponData.weaponHitbox != null) 
+                currentWeaponData.weaponHitbox.enabled = false;
+                
+            if (leftHandHitbox != null) leftHandHitbox.enabled = false;
+        }
+
+        attackCoroutine = StartCoroutine(PerformAttackRoutine(activeWeapon.comboLength));
     }
 
     private IEnumerator PerformAttackRoutine(int maxCombo)
     {
+        Weapon activeWeapon = GetActiveWeaponToUse(); // Считываем статы
+        if (activeWeapon == null) yield break;
+
         isSwinging = true;
+        canChainAttack = false; 
         lastAttackTime = Time.time;
 
-        if (stateFlags != null) stateFlags.isSwingingWeapon = true;
-
-        // 1. ЗАПУСКАЕМ АНИМАЦИЮ (Замах пошел!)
         if (characterAnimator != null)
         {
             characterAnimator.SetInteger("ComboStep", currentComboStep);
             characterAnimator.SetTrigger("Attack");
         }
 
-        // --- ВЫБОР РУКИ ---
+        // Проигрываем звук динамического оружия (тяжелый двуручник звучит тяжело, кинжал - легко!)
+        if (activeWeapon.attackSound != null && audioSource)
+            audioSource.PlayOneShot(activeWeapon.attackSound);
+
         Collider activeCollider = null;
-        bool useLeftHand = currentWeaponData != null && currentWeaponData.isDualWeapon && (currentComboStep % 2 != 0);
+        bool useLeftHand = activeWeapon.isDualWeapon && (currentComboStep % 2 != 0);
 
         if (useLeftHand && leftHandHitbox != null) activeCollider = leftHandHitbox;
-        else if (currentWeaponData != null) activeCollider = currentWeaponData.weaponHitbox;
+         else if (currentWeaponData != null && currentWeaponData.weaponHitbox != null) activeCollider = currentWeaponData.weaponHitbox;
 
         Hitbox activeHitboxScript = null;
-
         if (activeCollider != null && activeCollider.gameObject != null)
         {
             activeHitboxScript = activeCollider.GetComponent<Hitbox>();
-            
-            // ПРИНУДИТЕЛЬНО ОЧИЩАЕМ ПАМЯТЬ ХИТБОКСА (Перед новым ударом)
             if (activeHitboxScript != null) activeHitboxScript.ForceResetHitbox();
         }
 
-        // 2. ЖДЕМ ВРЕМЯ ЗАМАХА (Windup)
-        float windupTime = currentWeaponData != null ? currentWeaponData.attackWindup : 0.1f;
+        float speedMult = activeWeapon.animSpeedMultiplier;
+        if (speedMult <= 0) speedMult = 1f;
+
+        // 1. ЗАМАХ
+        float windupTime = activeWeapon.attackWindup / speedMult;
         yield return new WaitForSeconds(windupTime);
 
-        // 3. УДАР! (Играем звук и включаем хитбокс)
-        // Звук лучше играть именно здесь, когда меч "вжикает" по воздуху, а не в начале замаха
-        if (currentWeaponData != null && audioSource && currentWeaponData.attackSound)
-        {
-            audioSource.PlayOneShot(currentWeaponData.attackSound);
-        }
-
+        // 2. УДАР
         if (activeCollider != null && activeCollider.gameObject != null)
         {
-            // Включаем "опасную зону"
             if (activeHitboxScript != null) activeHitboxScript.StartAttack();
             else activeCollider.enabled = true;
 
-            // 4. ЖДЕМ ВРЕМЯ ДЛИТЕЛЬНОСТИ АТАКИ (Сколько времени меч летит сквозь врага)
-            float activeTime = currentWeaponData != null ? currentWeaponData.attackDuration : 0.2f;
+            if (useLeftHand && leftHandTrail != null) leftHandTrail.emitting = true;
+            else if (!useLeftHand && rightHandTrail != null) rightHandTrail.emitting = true;
+
+            float activeTime = activeWeapon.attackDuration / speedMult;
             yield return new WaitForSeconds(activeTime);
 
-            // 5. ВЫКЛЮЧАЕМ ХИТБОКС
+            if (useLeftHand && leftHandTrail != null) leftHandTrail.emitting = false;
+            else if (!useLeftHand && rightHandTrail != null) rightHandTrail.emitting = false;
+
             if (activeCollider != null && activeCollider.gameObject != null)
             {
                 if (activeHitboxScript != null) activeHitboxScript.EndAttack();
@@ -186,71 +212,109 @@ public class PlayerCombat : MonoBehaviour
         }
         else
         {
-            // Если мы деремся без оружия (или хитбокс потерялся), просто ждем длительность удара
-            float activeTime = currentWeaponData != null ? currentWeaponData.attackDuration : 0.2f;
+            float activeTime = activeWeapon.attackDuration / speedMult;
             yield return new WaitForSeconds(activeTime);
         }
 
-        // 6. ЗАВЕРШЕНИЕ
-        isSwinging = false;
-        if (stateFlags != null) stateFlags.isSwingingWeapon = false;
-        
         currentComboStep++; 
         if (maxCombo > 0 && currentComboStep >= maxCombo) currentComboStep = 0;
+
+        canChainAttack = true; 
+
+        // 3. ОТКАТ
+        float recoveryTime = activeWeapon.recoveryDelay / speedMult;
+        yield return new WaitForSeconds(recoveryTime);
+
+        if (characterAnimator != null) characterAnimator.SetBool("Attack", false);
+
+        isSwinging = false;
+        canChainAttack = false;
+        attackCoroutine = null;
     }
+
     // --- СМЕНА ОРУЖИЯ ---
     public void EquipWeapon(Weapon weaponAsset)
     {
-        StopAllCoroutines(); 
-        isSwinging = false;
         ClearWeaponObjects();
 
-        if (weaponAsset == null || weaponAsset.prefab == null)
+        if (weaponAsset == null)
         {
             ClearWeapon();
             return;
         }
 
-        currentWeaponData = weaponAsset;
+        // --- ПОДМЕНА МОДЕЛИ ОРУЖИЯ ДЛЯ СПОСОБНОСТЕЙ ---
+        Weapon visualWeapon = weaponAsset;
+        if (weaponAsset.isSkillWeapon)
+        {
+            Inventory inv = FindFirstObjectByType <Inventory>();
+            if (inv != null)
+            {
+                Weapon slotWeapon = inv.GetEquippedWeaponInSlot();
+                if (slotWeapon != null)
+                {
+                    visualWeapon = slotWeapon;
+                }
+            }
+        }
 
-        // 1. СОЗДАЕМ ПРАВОЕ ОРУЖИЕ (Главный префаб)
-        currentWeaponObject = Instantiate(currentWeaponData.prefab); 
+        if (visualWeapon.prefab == null)
+        {
+            ClearWeapon();
+            return;
+        }
+
+        currentWeaponData = weaponAsset; // Логические кулдауны остаются от способности
+
+        // Создаем визуальную модель определенного нами оружия
+        currentWeaponObject = Instantiate(visualWeapon.prefab); 
         currentWeaponObject.transform.SetParent(rightHand, true);   
         ResetTransform(currentWeaponObject);
         
-        // --- Автопоиск хитбокса ПРАВОЙ руки ---
         Collider rightCol = FindHitbox(currentWeaponObject);
         if (rightCol != null)
         {
-            // ЗАПИСЫВАЕМ ССЫЛКУ в старую переменную, чтобы не ломать PerformAttackRoutine!
             currentWeaponData.weaponHitbox = rightCol; 
-            SetupHitboxScript(rightCol, currentWeaponData.damage, currentWeaponData.impactPower);
+            SetupHitboxScript(rightCol, visualWeapon.damage, visualWeapon.impactPower);
         }
 
-        // 2. СОЗДАЕМ ЛЕВОЕ ОРУЖИЕ (Если двойное и указан отдельный префаб)
-        // ТЕПЕРЬ МЫ ИСПОЛЬЗУЕМ offHandPrefab ВМЕСТО leftHandChildObject
-        if (currentWeaponData.isDualWeapon && currentWeaponData.offHandPrefab != null && leftHand != null)
+        rightHandTrail = currentWeaponObject.GetComponentInChildren<TrailRenderer>();
+        if (rightHandTrail != null) rightHandTrail.emitting = false;
+
+        // Левая рука
+        if (visualWeapon.isDualWeapon && visualWeapon.offHandPrefab != null && leftHand != null)
         {
-            leftHandModelObject = Instantiate(currentWeaponData.offHandPrefab);
+            leftHandModelObject = Instantiate(visualWeapon.offHandPrefab);
             leftHandModelObject.transform.SetParent(leftHand, true);
             ResetTransform(leftHandModelObject);
 
-            // --- Автопоиск хитбокса ЛЕВОЙ руки ---
             leftHandHitbox = FindHitbox(leftHandModelObject);
-            if (leftHandHitbox != null)
-            {
-                SetupHitboxScript(leftHandHitbox, currentWeaponData.damage, currentWeaponData.impactPower);
-            }
+            if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, visualWeapon.damage, visualWeapon.impactPower);
+
+            leftHandTrail = leftHandModelObject.GetComponentInChildren<TrailRenderer>();
+            if (leftHandTrail != null) leftHandTrail.emitting = false;
         }
         else
         {
             leftHandModelObject = null;
             leftHandHitbox = null;
+            leftHandTrail = null; 
         }
 
-        // 3. Аниматор и сброс
-        if (characterAnimator != null && currentWeaponData.weaponAnimatorOverride != null)
-            characterAnimator.runtimeAnimatorController = currentWeaponData.weaponAnimatorOverride;
+        // Аниматор переопределяем на основе динамического оружия
+        if (characterAnimator != null)
+        {
+            if (visualWeapon.weaponAnimatorOverride != null)
+            {
+                characterAnimator.runtimeAnimatorController = visualWeapon.weaponAnimatorOverride;
+            }
+            else if (weaponAsset.weaponAnimatorOverride != null)
+            {
+                characterAnimator.runtimeAnimatorController = weaponAsset.weaponAnimatorOverride;
+            }
+            
+            characterAnimator.SetFloat("WeaponAttackSpeed", visualWeapon.animSpeedMultiplier);
+        }
         
         currentComboStep = 0;
         isSwinging = false;
@@ -259,42 +323,21 @@ public class PlayerCombat : MonoBehaviour
         UpdateAnimatorCombatState();
     }
 
-    // --- Вспомогательные методы (добавь их в конец скрипта PlayerCombat, если их еще нет) ---
-
-    private Collider FindHitbox(GameObject weaponObj)
-    {
-        Collider[] cols = weaponObj.GetComponentsInChildren<Collider>();
-        foreach (var c in cols)
-        {
-            if (c.isTrigger) return c; 
-        }
-        return null;
-    }
-
-    private void SetupHitboxScript(Collider col, float damage, float impact) // Добавили параметр
-    {
-        col.enabled = false; 
-        Hitbox hitScript = col.GetComponent<Hitbox>();
-        
-        if (hitScript != null) 
-        {
-            hitScript.SetDamage(damage);
-            hitScript.currentImpactPower = impact; // Передаем импакт!
-            hitScript.mainAudioSource = this.audioSource;
-        }
-    }
-
     public void ClearWeapon()
     {
-        StopAllCoroutines(); 
-        isSwinging = false;
         ClearWeaponObjects();
         currentWeaponData = null;
         leftHandModelObject = null;
         leftHandHitbox = null;
+        
+        rightHandTrail = null;
+        leftHandTrail = null;
 
         if (characterAnimator != null)
+        {
             characterAnimator.runtimeAnimatorController = defaultAnimatorController;
+            characterAnimator.SetFloat("WeaponAttackSpeed", 1f);
+        }
             
         currentComboStep = 0;
         isSwinging = false;
@@ -305,13 +348,8 @@ public class PlayerCombat : MonoBehaviour
 
     private void ClearWeaponObjects()
     {
-        // Достаточно удалить корневой объект правой руки?
-        // НЕТ, мы же оторвали левую руку и перенесли её. Её тоже надо удалить.
-        
         if (currentWeaponObject != null) Destroy(currentWeaponObject);
-        
-        // Удаляем левую часть отдельно, т.к. она теперь ребенок LeftHand, а не currentWeaponObject
-        if (leftHandModelObject != null) Destroy(leftHandModelObject);
+        if (leftHandModelObject != null) Destroy(leftHandModelObject); 
     }
 
     private void ResetTransform(GameObject obj)
@@ -320,7 +358,6 @@ public class PlayerCombat : MonoBehaviour
         obj.transform.localRotation = Quaternion.identity;
     }
     
-    // ... Остальные методы (UpdateAnimatorCombatState и т.д.) без изменений ...
     private void UpdateAnimatorCombatState()
     {
         if (characterAnimator != null)
@@ -328,5 +365,63 @@ public class PlayerCombat : MonoBehaviour
             bool hasWeapon = (currentWeaponData != null);
             characterAnimator.SetBool("WeaponEquipped", hasWeapon);
         }
+    }
+
+    private Collider FindHitbox(GameObject weaponObj)
+    {
+        if (weaponObj == null) return null;
+
+        EnemyHitbox[] hitboxes = weaponObj.GetComponentsInChildren<EnemyHitbox>(true);
+        if (hitboxes.Length > 0)
+        {
+            Collider col = hitboxes[0].GetComponent<Collider>();
+            if (col != null) return col;
+        }
+        
+        Hitbox[] playerHitboxes = weaponObj.GetComponentsInChildren<Hitbox>(true);
+        if (playerHitboxes.Length > 0)
+        {
+            Collider col = playerHitboxes[0].GetComponent<Collider>();
+            if (col != null) return col;
+        }
+
+        Debug.LogError($"[ИГРОК] В оружии {weaponObj.name} не найден Hitbox!");
+        return null;
+    }
+
+    private void SetupHitboxScript(Collider col, float damage, float impact)
+    {
+        col.enabled = false; 
+        
+        EnemyHitbox enemyScript = col.GetComponent<EnemyHitbox>();
+        if (enemyScript != null)
+        {
+            enemyScript.SetDamage(damage);
+            enemyScript.currentImpactPower = impact;
+            enemyScript.mainAudioSource = this.audioSource;
+            return;
+        }
+
+        Hitbox hitScript = col.GetComponent<Hitbox>();
+        if (hitScript != null) 
+        {
+            hitScript.SetDamage(damage);
+            hitScript.currentImpactPower = impact;
+            hitScript.mainAudioSource = this.audioSource;
+        }
+    }
+
+    private Weapon GetActiveWeaponToUse()
+    {
+        if (currentWeaponData != null && currentWeaponData.isSkillWeapon)
+        {
+            Inventory inv = FindFirstObjectByType <Inventory>();
+            if (inv != null)
+            {
+                Weapon slotWeapon = inv.GetEquippedWeaponInSlot();
+                if (slotWeapon != null) return slotWeapon;
+            }
+        }
+        return currentWeaponData;
     }
 }

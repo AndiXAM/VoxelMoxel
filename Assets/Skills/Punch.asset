@@ -20,3 +20,4 @@ MonoBehaviour:
   outlineImage: {fileID: 0}
   requiredSkills: []
   grantedItem: {fileID: 11400000, guid: 870a3a968628c7b409c58edd112d6b1a, type: 2}
+  unlocksWeaponSlot: 0

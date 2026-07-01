@@ -16,12 +16,15 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: e8795308da20830408fc9dc38ac754b1, type: 3}
   prefab: {fileID: 7322174311629863612, guid: 6405d17cbe35ecb41b7365af46cdacfe, type: 3}
   maxStackSize: 1
+  animSpeedMultiplier: 1
   damage: 5
   attackWindup: 0.2
-  attackDuration: 0.8
-  attackCooldown: 1
+  attackDuration: 0.6
+  impactPower: 1
+  attackCooldown: 0.52
+  recoveryDelay: 0.2
   comboLength: 2
-  resetTime: 2
+  resetTime: 1.1
   isDualWeapon: 1
   offHandPrefab: {fileID: 2448481702331259805, guid: 6a0d89608539a9c4dae733f9f4eea90d, type: 3}
   leftHandChildObject: {fileID: 0}

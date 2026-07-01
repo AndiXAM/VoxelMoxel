@@ -17,7 +17,7 @@ public class AdvancedEnemyCombat : MonoBehaviour
     private GameObject currentRightWeaponObj;
     private GameObject currentLeftWeaponObj;
     
-    private Collider rightHandHitbox; // <-- Теперь коллайдер тут
+    private Collider rightHandHitbox; 
     private Collider leftHandHitbox;
 
     [HideInInspector] public bool isSwinging = false; 
@@ -32,40 +32,61 @@ public class AdvancedEnemyCombat : MonoBehaviour
         }
     }
 
-    // UPDATE УДАЛЕН. Оружие выдается ОДИН РАЗ в Start.
+        private void Update()
+    {
+        HandleComboReset();
+    }
 
-    private void EquipWeapon(Weapon weaponAsset)
+    private void HandleComboReset()
+    {
+
+        float resetTime = (currentWeaponData != null) ? currentWeaponData.resetTime : 1.0f;
+        
+        if (!isSwinging && Time.time - lastAttackTime > resetTime)
+        {
+            currentComboStep = 0;
+        }
+    }
+
+    public void EquipWeapon(Weapon weaponAsset)
     {
         if (weaponAsset == null || weaponAsset.prefab == null) return;
 
         currentWeaponData = weaponAsset;
 
         // --- Правая рука ---
-        currentRightWeaponObj = Instantiate(weaponAsset.prefab); // Создаем БЕЗ родителя сначала
-        currentRightWeaponObj.transform.SetParent(rightHand, true); // СТАВИМ TRUE! 
+        currentRightWeaponObj = Instantiate(weaponAsset.prefab); 
+        currentRightWeaponObj.transform.SetParent(rightHand, true); 
         ResetTransform(currentRightWeaponObj);
         
-        rightHandHitbox = FindHitbox(currentRightWeaponObj); // Ищем хитбокс
+        rightHandHitbox = FindHitbox(currentRightWeaponObj); 
         if (rightHandHitbox != null)
         {
-            SetupHitboxScript(rightHandHitbox, weaponAsset.damage, weaponAsset.impactPower);
+            SetupHitboxScript(rightHandHitbox, weaponAsset.damage);
         }
 
         // --- Левая рука ---
         if (weaponAsset.isDualWeapon && weaponAsset.offHandPrefab != null && leftHand != null)
         {
             currentLeftWeaponObj = Instantiate(weaponAsset.offHandPrefab);
-            currentLeftWeaponObj.transform.SetParent(leftHand, true); // ТУТ БЫЛО rightHand и false! Исправил на leftHand и true
+            currentLeftWeaponObj.transform.SetParent(leftHand, true); 
             ResetTransform(currentLeftWeaponObj);
             
             leftHandHitbox = FindHitbox(currentLeftWeaponObj);
-            if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, weaponAsset.damage, weaponAsset.impactPower);
+            if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, weaponAsset.damage);
         }
 
         // --- Аниматор ---
-        if (animator != null && weaponAsset.weaponAnimatorOverride != null)
+        if (animator != null)
         {
-            animator.runtimeAnimatorController = weaponAsset.weaponAnimatorOverride;
+            // Если у оружия ЕСТЬ файл переопределения - подменяем контроллер
+            if (weaponAsset.weaponAnimatorOverride != null)
+            {
+                animator.runtimeAnimatorController = weaponAsset.weaponAnimatorOverride;
+            }
+
+            // Устанавливаем скорость атаки ВСЕГДА (даже если это стандартные кулаки!)
+            animator.SetFloat("WeaponAttackSpeed", weaponAsset.animSpeedMultiplier);
         }
         
         currentComboStep = 0;
@@ -75,9 +96,13 @@ public class AdvancedEnemyCombat : MonoBehaviour
     public void TryAttack()
     {
         if (currentWeaponData == null || isSwinging) return;
-        if (Time.time - lastAttackTime < currentWeaponData.attackCooldown) return;
 
-        // Сброс хитбоксов перед атакой
+        // --- ИСПРАВЛЕНИЕ: Делим кулдаун на скорость оружия! ---
+        float speedMult = currentWeaponData.animSpeedMultiplier > 0 ? currentWeaponData.animSpeedMultiplier : 1f;
+        float actualCooldown = currentWeaponData.attackCooldown / speedMult;
+
+        if (Time.time - lastAttackTime < actualCooldown) return;
+
         ResetHitbox(rightHandHitbox);
         ResetHitbox(leftHandHitbox);
 
@@ -108,23 +133,34 @@ public class AdvancedEnemyCombat : MonoBehaviour
 
         EnemyHitbox activeHitboxScript = activeCollider != null ? activeCollider.GetComponent<EnemyHitbox>() : null;
 
-        // Задержка до начала урона
-        yield return new WaitForSeconds(currentWeaponData.attackWindup);
+        // --- УМНЫЙ ПЕРЕСЧЕТ СКОРОСТИ ДЛЯ ВРАГА ---
+        float speedMult = currentWeaponData != null ? currentWeaponData.animSpeedMultiplier : 1f;
+        if (speedMult <= 0) speedMult = 1f;
+
+        // 1. ЗАМАХ (Замедлен/Ускорен)
+        float windupTime = (currentWeaponData != null ? currentWeaponData.attackWindup : 0.1f) / speedMult;
+        yield return new WaitForSeconds(windupTime);
 
         if (audioSource && currentWeaponData.attackSound)
             audioSource.PlayOneShot(currentWeaponData.attackSound);
 
-        // ВКЛЮЧАЕМ УРОН
+        // 2. ВКЛЮЧАЕМ УРОН (Замедлен/Ускорен)
         if (activeHitboxScript != null) activeHitboxScript.StartAttack();
         else if (activeCollider != null) activeCollider.enabled = true;
 
-        // Длительность удара
-        yield return new WaitForSeconds(currentWeaponData.attackDuration);
+        float activeTime = (currentWeaponData != null ? currentWeaponData.attackDuration : 0.2f) / speedMult;
+        yield return new WaitForSeconds(activeTime);
 
-        // ВЫКЛЮЧАЕМ УРОН
+        // 3. ВЫКЛЮЧАЕМ УРОН
         if (activeHitboxScript != null) activeHitboxScript.EndAttack();
         else if (activeCollider != null) activeCollider.enabled = false;
 
+        // 4. ОТКАТ / ВОЗВРАТ В СТОЙКУ (Замедлен/Ускорен)
+        // Не дает ИИ-агенту начать бежать за игроком, пока рука возвращается в Idle-позу
+        float recoveryTime = (currentWeaponData != null ? currentWeaponData.recoveryDelay : 0.2f) / speedMult;
+        yield return new WaitForSeconds(recoveryTime);
+
+        // 5. ЗАВЕРШЕНИЕ
         isSwinging = false;
         currentComboStep++; 
         if (maxCombo > 0 && currentComboStep >= maxCombo) currentComboStep = 0;
@@ -134,9 +170,7 @@ public class AdvancedEnemyCombat : MonoBehaviour
     {
         if (weaponObj == null) return null;
 
-        // Ищем включая неактивные объекты
         EnemyHitbox[] hitboxes = weaponObj.GetComponentsInChildren<EnemyHitbox>(true);
-        
         if (hitboxes.Length > 0)
         {
             Collider col = hitboxes[0].GetComponent<Collider>();
@@ -147,22 +181,20 @@ public class AdvancedEnemyCombat : MonoBehaviour
         return null;
     }
 
-    private void SetupHitboxScript(Collider col, float damage, float impact) // Добавили параметр
-{
-    col.enabled = false; 
-    Hitbox hitScript = col.GetComponent<Hitbox>();
-    
-    if (hitScript != null) 
+    private void SetupHitboxScript(Collider col, float damage)
     {
-        hitScript.SetDamage(damage);
-        hitScript.currentImpactPower = impact; // Передаем импакт!
-        hitScript.mainAudioSource = this.audioSource;
+        col.enabled = false; 
+        EnemyHitbox hitScript = col.GetComponent<EnemyHitbox>();
+        if (hitScript != null) 
+        {
+            hitScript.SetDamage(damage);
+            hitScript.mainAudioSource = this.audioSource;
+        }
     }
-}
 
     private void ResetTransform(GameObject obj)
-{
-    obj.transform.localPosition = Vector3.zero;
-    obj.transform.localRotation = Quaternion.identity;
-}
+    {
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+    }
 }

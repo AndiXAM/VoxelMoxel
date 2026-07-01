@@ -25,6 +25,10 @@ public class DialogueChoiceUI : MonoBehaviour
 
     private void OnChoiceClicked()
     {
+        if (currentChoice.openShop && currentChoice.shopToOpen != null)
+        {
+            DialogueManager.Instance.QueueShopOpening(currentChoice.shopToOpen);
+        }
         // 1. Отрабатываем квестовые события (если они включены именно в этом ОТВЕТЕ)
         if (currentDialogue != null && currentDialogue.quest != null && QuestManager.Instance != null)
         {

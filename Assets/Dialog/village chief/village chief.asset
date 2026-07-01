@@ -20,57 +20,92 @@ MonoBehaviour:
   startNodeIndex: 0
   inProgressNodeIndex: 0
   completedNodeIndex: 4
-  afterQuestNodeIndex: 5
+  afterQuestNodeIndex: 0
   nodes:
   - npcText: Hey! its you again!
     takeQuest: 0
     turnInQuest: 0
+    openShop: 0
+    shopToOpen: {fileID: 0}
     forceEndDialogue: 0
     choices:
     - choiceText: Who are you?
       nextNodeIndex: 1
       takeQuest: 0
       turnInQuest: 0
+      openShop: 0
+      shopToOpen: {fileID: 0}
     - choiceText: Where am i?
       nextNodeIndex: 2
       takeQuest: 0
       turnInQuest: 0
+      openShop: 0
+      shopToOpen: {fileID: 0}
+    - choiceText: Do you sell something?
+      nextNodeIndex: 6
+      takeQuest: 0
+      turnInQuest: 0
+      openShop: 1
+      shopToOpen: {fileID: 11400000, guid: 7e356af367fd9cd44a0211087dfb1c3b, type: 2}
     - choiceText: Can I do anything for you?
       nextNodeIndex: 3
       takeQuest: 0
       turnInQuest: 0
+      openShop: 0
+      shopToOpen: {fileID: 0}
   - npcText: I'm just an old resident of this village
     takeQuest: 0
     turnInQuest: 0
+    openShop: 0
+    shopToOpen: {fileID: 0}
     forceEndDialogue: 1
     choices: []
   - npcText: Can't you see? You're in a village.
     takeQuest: 0
     turnInQuest: 0
+    openShop: 0
+    shopToOpen: {fileID: 0}
     forceEndDialogue: 1
     choices: []
   - npcText: Yes, there's a monster near the village entrance. Kill it and come back
       to me.
     takeQuest: 1
     turnInQuest: 0
+    openShop: 0
+    shopToOpen: {fileID: 0}
     forceEndDialogue: 1
     choices: []
   - npcText: Thank you, here is your reward. I hope you haven't forgotten that you
       have pockets? (Press I to open inventory)
     takeQuest: 0
     turnInQuest: 1
+    openShop: 0
+    shopToOpen: {fileID: 0}
     forceEndDialogue: 1
     choices: []
   - npcText: hm?
     takeQuest: 0
     turnInQuest: 0
+    openShop: 0
+    shopToOpen: {fileID: 0}
     forceEndDialogue: 0
     choices:
     - choiceText: Who are you?
       nextNodeIndex: 1
       takeQuest: 0
       turnInQuest: 0
+      openShop: 0
+      shopToOpen: {fileID: 0}
     - choiceText: Where am i?
       nextNodeIndex: 2
       takeQuest: 0
       turnInQuest: 0
+      openShop: 0
+      shopToOpen: {fileID: 0}
+  - npcText: yes, look at this staff
+    takeQuest: 0
+    turnInQuest: 0
+    openShop: 1
+    shopToOpen: {fileID: 11400000, guid: 7e356af367fd9cd44a0211087dfb1c3b, type: 2}
+    forceEndDialogue: 0
+    choices: []

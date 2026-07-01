@@ -24,4 +24,6 @@ MonoBehaviour:
   - statType: 1
     value: 20
     modType: 100
-  classSkills: []
+  classSkills:
+  - {fileID: 11400000, guid: 43b57713dacd8a548816bf2ccdc0770a, type: 2}
+  - {fileID: 11400000, guid: d51c4f26bce3831459f264ccd682c5ac, type: 2}

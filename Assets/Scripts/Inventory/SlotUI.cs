@@ -20,7 +20,7 @@ public class SlotUI : MonoBehaviour, IDropHandler
     }
 
     // ТЕПЕРЬ МЫ ПРИНИМАЕМ КОНТЕЙНЕР ДАННЫХ
-    public void SetItem(InventorySlotData slotData)
+    public virtual void SetItem(InventorySlotData slotData)
     {
         if (slotData != null && !slotData.IsEmpty)
         {

@@ -213,6 +213,20 @@ public class SkillTreeUIManager : MonoBehaviour, ISaveable
                 node.UpdateVisuals(IsSkillUnlocked(node.skillData), CanUnlockSkill(node.skillData));
             }
         }
+
+        if (playerInventory != null)
+        {
+            bool hasWeaponUnlock = false;
+            foreach (var skill in unlockedSkills)
+            {
+                if (skill != null && skill.unlocksWeaponSlot)
+                {
+                    hasWeaponUnlock = true;
+                    break;
+                }
+            }
+            playerInventory.SetWeaponSlotUnlockState(hasWeaponUnlock);
+        }
     }
 
     public void ShowClassGraph()

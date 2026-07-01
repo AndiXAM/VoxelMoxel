@@ -35,6 +35,10 @@ public class DialogueManager : MonoBehaviour
     private DialogueData currentDialogue;
     private DialogueNode currentNode;
     private int currentNodeIndex = 0;
+
+    //магазин
+
+    private ShopData pendingShopToOpen;
     
     [HideInInspector] public bool isDialogueActive = false;
     [HideInInspector] public Transform currentNPCTransform;
@@ -176,6 +180,9 @@ public class DialogueManager : MonoBehaviour
 
     private void ProcessNodeEvents(DialogueNode node)
     {
+        if (node.openShop && node.shopToOpen != null)
+        QueueShopOpening(node.shopToOpen);
+    
         if (currentDialogue.quest == null || QuestManager.Instance == null) return;
         string qName = currentDialogue.quest.questName;
 
@@ -199,5 +206,16 @@ public class DialogueManager : MonoBehaviour
         ClearChoices();
         currentDialogue = null;
         currentNPCTransform = null; // Забываем НПС
+
+        if (pendingShopToOpen != null && ShopUIManager.Instance != null)
+        {
+            ShopUIManager.Instance.OpenShop(pendingShopToOpen);
+            pendingShopToOpen = null; // Очищаем очередь
+        }
+    }
+
+    public void QueueShopOpening(ShopData shop)
+    {
+        pendingShopToOpen = shop;
     }
 }

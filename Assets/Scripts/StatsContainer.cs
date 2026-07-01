@@ -2,6 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
+[Serializable]
+public class EquipmentStatBonus
+{
+    public StatType statType;     // Какой стат меняем (из StatsContainer.cs)
+    public float value;           // На сколько меняем
+    public StatModType modType;   // Тип модификатора (Flat, PercentAdd, PercentMult)
+}
+
 // --- 1. ОПРЕДЕЛЕНИЕ ТИПОВ СТАТОВ (Этого не хватало) ---
 public enum StatType
 {

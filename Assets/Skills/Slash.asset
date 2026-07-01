@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52fe9f58415b16a44bd03eeb620c484f, type: 3}
+  m_Name: Slash
+  m_EditorClassIdentifier: 
+  skillName: Slash
+  description: '-'
+  isPassive: 0
+  icon: {fileID: 21300000, guid: aab61b43c1248224e8548882e16bacd4, type: 3}
+  backgroundImage: {fileID: 21300000, guid: 81cd1a16f50545b4b938b232b0ca29c7, type: 3}
+  outlineImage: {fileID: 0}
+  requiredSkills:
+  - {fileID: 11400000, guid: 43b57713dacd8a548816bf2ccdc0770a, type: 2}
+  grantedItem: {fileID: 11400000, guid: 665489bbb61e1db4b857cfec45c00a29, type: 2}
+  unlocksWeaponSlot: 0

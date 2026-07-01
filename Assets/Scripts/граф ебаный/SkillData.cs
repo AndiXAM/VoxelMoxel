@@ -15,8 +15,10 @@ public class SkillData : ScriptableObject
     [Header("Requirements")]
     public SkillData[] requiredSkills; 
 
-    // --- НОВОЕ ПОЛЕ ---
     [Header("Gameplay (Экипировка)")]
     [Tooltip("Какой предмет добавится в инвентарь при экипировке этого навыка?")]
     public Item grantedItem; 
+    [Header("Специальные разблокировки")]
+    [Tooltip("Если включено, этот пассивный навык разблокирует ячейку оружия в снаряжении")]
+    public bool unlocksWeaponSlot = false;
 }

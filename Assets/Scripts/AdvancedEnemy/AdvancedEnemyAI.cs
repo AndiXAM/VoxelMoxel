@@ -190,22 +190,29 @@ public class AdvancedEnemyAI : MonoBehaviour
     }
 
     private void HandleAttackingState(float distanceToPlayer)
+{
+    if (distanceToPlayer > attackRange)
     {
-        if (distanceToPlayer > attackRange)
-        {
-            currentState = AIState.Chase;
-            return;
-        }
-
-        MoveToTarget();
-        FaceTarget();
-
-        if (!combat.isSwinging)
-        {
-            combat.TryAttack();
-            if (combat.isSwinging) currentState = AIState.ChoosingAction; 
-        }
+        currentState = AIState.Chase;
+        return;
     }
+
+    if (stats.IsBlock || stats.IsParry)
+    {
+        stats.IsBlock = false;
+        stats.IsParry = false;
+        if (animator != null) animator.SetBool("IsBlocking", false);
+    }
+
+    MoveToTarget();
+    FaceTarget();
+
+    if (!combat.isSwinging)
+    {
+        combat.TryAttack();
+        if (combat.isSwinging) currentState = AIState.ChoosingAction; 
+    }
+}
 
     private void HandleChoosingActionState(float distanceToPlayer)
     {
@@ -358,6 +365,13 @@ public class AdvancedEnemyAI : MonoBehaviour
     // --- ИСПРАВЛЕННАЯ КОРУТИНА (КРУГОВОЙ УВОРОТ) ---
     private IEnumerator EnemyDodgeRoutine()
     {
+        if (stats.IsBlock || stats.IsParry)
+        {
+            stats.IsBlock = false;
+            stats.IsParry = false;
+            if (animator != null) animator.SetBool("IsBlocking", false);
+        }
+
         currentState = AIState.Dodging;
         currentDodgeCharges--; 
         stats.DodgeInviсible = true; 

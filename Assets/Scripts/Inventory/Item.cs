@@ -1,5 +1,11 @@
 using UnityEngine;
-
+public enum EquipmentSlot
+{
+    Helmet,
+    Chestplate,
+    Boots,
+    Weapon 
+}
 
 [System.Serializable]
 public class InventorySlotData

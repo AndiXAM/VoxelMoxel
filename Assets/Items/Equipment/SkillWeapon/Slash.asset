@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be32d5a970f1e954da7a947858a50453, type: 3}
+  m_Name: Slash
+  m_EditorClassIdentifier: 
+  itemName: 
+  icon: {fileID: 21300000, guid: aab61b43c1248224e8548882e16bacd4, type: 3}
+  prefab: {fileID: 0}
+  maxStackSize: 1
+  animSpeedMultiplier: 1
+  damage: 0
+  attackWindup: 0
+  attackDuration: 0
+  impactPower: 0
+  attackCooldown: 0
+  recoveryDelay: 0
+  comboLength: 0
+  resetTime: 0
+  isDualWeapon: 0
+  offHandPrefab: {fileID: 0}
+  leftHandChildObject: {fileID: 0}
+  weaponHitbox: {fileID: 0}
+  attackSound: {fileID: 0}
+  weaponAnimatorOverride: {fileID: 0}
+  isSkillWeapon: 1

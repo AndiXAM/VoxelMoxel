@@ -11,6 +11,8 @@ public class DialogueChoice
     [Header("События (Сработают ПРИ КЛИКЕ на этот ответ)")]
     public bool takeQuest = false; 
     public bool turnInQuest = false; 
+    public bool openShop = false;
+    public ShopData shopToOpen;
 }
 
 // УЗЕЛ ДИАЛОГА (Фраза NPC)
@@ -23,6 +25,8 @@ public class DialogueNode
     [Header("События (Сработают ПРИ ПОЯВЛЕНИИ этого текста)")]
     public bool takeQuest = false;   
     public bool turnInQuest = false; 
+    public bool openShop = false;
+    public ShopData shopToOpen;
     
     [Tooltip("ЛКМ по этому тексту завершит диалог, даже если есть следующий узел")]
     public bool forceEndDialogue = false;
