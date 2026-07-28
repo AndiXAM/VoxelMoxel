@@ -68,6 +68,13 @@ public class UITreeLine : MaskableGraphic
 
         if (startNode == null || endNode == null) return;
 
+        // --- НОВАЯ ЗАЩИТА: Если хотя бы один узел скрыт в иерархии, не рисуем линию ---
+        if (!startNode.gameObject.activeInHierarchy || !endNode.gameObject.activeInHierarchy)
+        {
+            return; 
+        }
+        // ------------------------------------------------------------------------------
+
         // Переводим мировые координаты кнопок в локальные координаты линии
         Vector2 startPos = rectTransform.InverseTransformPoint(startNode.transform.position);
         Vector2 endPos = rectTransform.InverseTransformPoint(endNode.transform.position);

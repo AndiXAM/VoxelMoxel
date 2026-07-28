@@ -15,7 +15,7 @@ MonoBehaviour:
   skillName: Slash
   description: '-'
   isPassive: 0
-  icon: {fileID: 21300000, guid: aab61b43c1248224e8548882e16bacd4, type: 3}
+  icon: {fileID: 21300000, guid: 91e0badb8cc1ac242b2dcfa106904887, type: 3}
   backgroundImage: {fileID: 21300000, guid: 81cd1a16f50545b4b938b232b0ca29c7, type: 3}
   outlineImage: {fileID: 0}
   requiredSkills:
