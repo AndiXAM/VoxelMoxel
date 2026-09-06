@@ -47,13 +47,21 @@ public class ThirdPersonCam : MonoBehaviour
     private int minCameraRadius = 1;
     private float targetRadius;
 
+    private StatsContainer playerStats;
+
     void Start()
     {
+        // Ищем статы на корне игрока
+        if (player != null) playerStats = player.GetComponent<StatsContainer>();
+        if (playerStats == null && capsule != null) playerStats = capsule.GetComponentInParent<StatsContainer>();
+
         ciac = FreeLookCamera.GetComponent<CinemachineInputAxisController>();
         COF = FreeLookCamera.GetComponent<CinemachineOrbitalFollow>();
         cameraTransform = FreeLookCamera.transform; 
         targetRadius = COF.Radius;
         AimCanvas.SetActive(false);
+
+        
 
         // --- ЗАПОМИНАЕМ ПОЗИЦИЮ ---
         if (cameraFollowTarget != null)
@@ -78,7 +86,7 @@ public class ThirdPersonCam : MonoBehaviour
 
     void Update()
     {
-        // 1. ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ (Как было)
+        // Переключение режимов на C
         if (Input.GetKeyDown(KeyCode.C))
         {
             if (cameraMode == "freeCamera")
@@ -97,8 +105,32 @@ public class ThirdPersonCam : MonoBehaviour
             }
         }
 
-        // --- 2. ПРИОРИТЕТ ПОВОРОТА ДЛЯ ДИАЛОГА ---
-        // Если сейчас идет диалог и у нас есть ссылка на НПС
+        // Зум колесиком мыши
+        if (Input.GetAxis("Mouse ScrollWheel") > 0f && targetRadius < maxCameraRadius)
+            targetRadius += 0.4f;
+        else if (Input.GetAxis("Mouse ScrollWheel") < 0f && targetRadius > minCameraRadius)
+            targetRadius -= 0.4f;
+
+        // Обработка прозрачности персонажа
+        HandlePlayerTransparency();
+    }
+
+    void LateUpdate()
+    {
+        // Плавный зум
+        COF.Radius = Mathf.Lerp(COF.Radius, targetRadius, Time.deltaTime * 10f);
+
+        // Смещение точки фокуса камеры
+        if (cameraFollowTarget != null)
+        {
+            Vector3 desiredPosition = (cameraMode == "battleCamera") 
+                ? originalLocalPosition + battleCameraOffset 
+                : originalLocalPosition;
+            
+            cameraFollowTarget.localPosition = Vector3.Lerp(cameraFollowTarget.localPosition, desiredPosition, Time.deltaTime * offsetTransitionSpeed);
+        }
+
+        // --- ЛОГИКА ПОВОРОТА ПЕРСОНАЖА ---
         if (DialogueManager.Instance != null && DialogueManager.Instance.isDialogueActive && DialogueManager.Instance.currentNPCTransform != null)
         {
             Vector3 dirToNPC = DialogueManager.Instance.currentNPCTransform.position - capsule.position;
@@ -106,12 +138,19 @@ public class ThirdPersonCam : MonoBehaviour
 
             if (dirToNPC.sqrMagnitude > 0.001f)
             {
-                // ИСПРАВЛЕНИЕ: Заменили rotationSpeed на dialogueRotationSpeed
-                capsule.forward = Vector3.Slerp(capsule.forward, dirToNPC.normalized, Time.deltaTime * dialogueRotationSpeed);
+                Quaternion targetRot = Quaternion.LookRotation(dirToNPC.normalized);
+                capsule.rotation = Quaternion.Slerp(capsule.rotation, targetRot, Time.deltaTime * dialogueRotationSpeed);
             }
         }
-        else // --- СТАНДАРТНАЯ ЛОГИКА КАМЕРЫ (Если диалога нет) ---
+        else
         {
+            // Если способность заблокировала управление — камеру не крутим
+            if (playerStats != null && playerStats.IsMovementLocked)
+            {
+                if (cameraMode == "battleCamera") AimCanvas.SetActive(true);
+                return;
+            }
+
             if (cameraMode == "freeCamera")
             {
                 Vector3 viewDir = capsule.position - new Vector3(transform.position.x, capsule.position.y, transform.position.z);
@@ -123,9 +162,10 @@ public class ThirdPersonCam : MonoBehaviour
 
                 AimCanvas.SetActive(false);
 
-                if (inputDir != Vector3.zero)
+                if (inputDir.sqrMagnitude > 0.001f)
                 {
-                    capsule.forward = Vector3.Slerp(capsule.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
+                    Quaternion targetRot = Quaternion.LookRotation(inputDir.normalized);
+                    capsule.rotation = Quaternion.Slerp(capsule.rotation, targetRot, Time.deltaTime * rotationSpeed);
                 }
 
                 if (Input.GetKey(KeyCode.Mouse1)) ciac.enabled = true;
@@ -135,33 +175,17 @@ public class ThirdPersonCam : MonoBehaviour
             {
                 Vector3 cameraForward = cameraTransform.forward;
                 cameraForward.y = 0;
-                cameraForward.Normalize();
+
                 AimCanvas.SetActive(true);
-                // Поворачиваемся по направлению камеры
-                capsule.forward = Vector3.Slerp(capsule.forward, cameraForward, Time.deltaTime * rotationSpeed);
+
+                // Плавный поворот через кватернионы синхронно с камерой (без рывков)
+                if (cameraForward.sqrMagnitude > 0.001f)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(cameraForward.normalized);
+                    capsule.rotation = Quaternion.Slerp(capsule.rotation, targetRot, Time.deltaTime * rotationSpeed);
+                }
             }
         }
-
-        // 3. ЗУМ (Как было)
-        if (Input.GetAxis("Mouse ScrollWheel") > 0f && targetRadius < maxCameraRadius)
-            targetRadius += 0.4f;
-        else if (Input.GetAxis("Mouse ScrollWheel") < 0f && targetRadius > minCameraRadius)
-            targetRadius -= 0.4f;
-
-        COF.Radius = Mathf.Lerp(COF.Radius, targetRadius, Time.deltaTime * 10f);
-
-        // 4. СМЕЩЕНИЕ КАМЕРЫ (Как было)
-        if (cameraFollowTarget != null)
-        {
-            Vector3 desiredPosition = (cameraMode == "battleCamera") 
-                ? originalLocalPosition + battleCameraOffset 
-                : originalLocalPosition;
-            
-            cameraFollowTarget.localPosition = Vector3.Lerp(cameraFollowTarget.localPosition, desiredPosition, Time.deltaTime * offsetTransitionSpeed);
-        }
-
-        // 5. ПРОЗРАЧНОСТЬ (Как было)
-        HandlePlayerTransparency();
     }
     private void HandlePlayerTransparency()
     {

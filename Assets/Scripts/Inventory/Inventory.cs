@@ -31,6 +31,8 @@ public class Inventory : MonoBehaviour, ISaveable
     public PlayerConsumables playerConsumables;
     public StatsContainer statsContainer; // Ссылка на характеристики для наложения бонусов брони
 
+    public PlayerSkillHandler playerSkills;
+
     [Header("Тестовые предметы")]
     public Item TESTWEAPON; 
     public Item TESTCONS;
@@ -42,7 +44,7 @@ public class Inventory : MonoBehaviour, ISaveable
     private Equipment equippedHelmet;
     private Equipment equippedChestplate;
     private Equipment equippedBoots;
-
+    private Weapon currentVisualWeaponInHand; // Память: какой меч сейчас физически в руке
     
 
     private void Start()
@@ -419,22 +421,37 @@ public class Inventory : MonoBehaviour, ISaveable
     private void UpdateSelectedWeapon()
     {
         Item currentItem = GetSelectedItem();
+        Weapon neededVisualWeapon = GetVisualWeaponForItem(currentItem);
+
+        // Проверяем: изменилась ли сама 3D-модель меча в руках?
+        bool visualWeaponChanged = (neededVisualWeapon != currentVisualWeaponInHand);
 
         if (currentItem is Weapon weapon)
         {
-            if(playerConsumables != null) playerConsumables.ClearHand();
-            playerCombat.EquipWeapon(weapon);
+            if (playerConsumables != null) playerConsumables.ClearHand();
+            if (playerSkills != null) playerSkills.ClearSkillHand(visualWeaponChanged);
+            playerCombat.EquipWeapon(weapon, visualWeaponChanged);
         }
         else if (currentItem is Consumable consumable)
         {
             playerCombat.ClearWeapon();
-            if(playerConsumables != null) playerConsumables.EquipConsumable(consumable);
+            if (playerSkills != null) playerSkills.ClearSkillHand(true);
+            if (playerConsumables != null) playerConsumables.EquipConsumable(consumable);
+        }
+        else if (currentItem is SkillItem skillItem)
+        {
+            playerCombat.ClearWeapon(visualWeaponChanged);
+            if (playerConsumables != null) playerConsumables.ClearHand();
+            if (playerSkills != null) playerSkills.EquipSkill(skillItem, visualWeaponChanged);
         }
         else
         {
             playerCombat.ClearWeapon();
-            if(playerConsumables != null) playerConsumables.ClearHand();
+            if (playerConsumables != null) playerConsumables.ClearHand();
+            if (playerSkills != null) playerSkills.ClearSkillHand(true);
         }
+
+        currentVisualWeaponInHand = neededVisualWeapon;
     }
 
     public void UpdateUI()
@@ -581,5 +598,19 @@ public class Inventory : MonoBehaviour, ISaveable
     {
         if (slotsData == null || slotsData.Length <= TotalSlots + 3) return null;
         return slotsData[TotalSlots + 3].item as Weapon;
+    }
+
+    private Weapon GetVisualWeaponForItem(Item item)
+    {
+        if (item is Weapon w)
+        {
+            if (w.isSkillWeapon) return GetEquippedWeaponInSlot();
+            return w;
+        }
+        if (item is SkillItem s && s.requiresEquippedWeapon)
+        {
+            return GetEquippedWeaponInSlot();
+        }
+        return null; // Для зелий, пустых слотов и магии без меча
     }
 }

@@ -40,9 +40,16 @@ public class EnemyHitbox : Hitbox
             pushDir.Normalize();
             // ----------------------------------------
 
+            WeaponFlasher playerFlasher = targetHealth.GetComponentInParent<WeaponFlasher>();
+
+            float maxHp = (playerStats != null && playerStats.MaxHealth != null) ? playerStats.MaxHealth.Value : 100f;
+            float damagePercent = Mathf.Clamp01(damageAmount / maxHp);
+
             if (isDodging)
             {
                 if (mainAudioSource != null && dodgedSound != null) mainAudioSource.PlayOneShot(dodgedSound);
+                DamageFlasher playerBodyFlasher = targetHealth.GetComponentInParent<DamageFlasher>();
+                if (playerBodyFlasher != null) playerBodyFlasher.FlashDodge();
             }
             else if (isParrying)
             {
@@ -53,6 +60,9 @@ public class EnemyHitbox : Hitbox
                 if (mainAudioSource != null && parrySound != null) mainAudioSource.PlayOneShot(parrySound);
                 
                 playerStats.ParryFatige = false; 
+
+                // ИГРОК СПАРИРОВАЛ: вспыхивает ТОЛЬКО меч игрока белым!
+                if (playerFlasher != null) playerFlasher.Flash(Color.white, damagePercent);
             }
             else if (isBlocking)
             {
@@ -62,10 +72,11 @@ public class EnemyHitbox : Hitbox
                 
                 if (mainAudioSource != null && BlockSound != null) mainAudioSource.PlayOneShot(BlockSound);
                 
-                // Передаем ГОТОВЫЙ вектор pushDir!
                 playerStats.TakeImpact(currentImpactPower, true, pushDir);
-
                 attackLanded = true; 
+
+                // ИГРОК ЗАБЛОКИРОВАЛ: моргает ТОЛЬКО меч игрока черным!
+                if (playerFlasher != null) playerFlasher.Flash(Color.black, damagePercent);
             }
             else
             {

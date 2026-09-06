@@ -3,10 +3,13 @@ using System.Collections;
 
 public class DamageFlasher : MonoBehaviour
 {
-    [Header("Настройки вспышки")]
-    public Color flashColor = Color.red; // Цвет при получении урона
-    public float flashDuration = 0.15f;  // Сколько длится жесткая вспышка
-    public float fadeDuration = 0.3f;    // Как долго цвет возвращается в норму
+    [Header("Цвета вспышек")]
+    public Color damageColor = Color.red;                         // Цвет при получении урона
+    public Color dodgeColor = new Color(0.2f, 0.75f, 1.0f, 1.0f); // Приятный голубой цвет при увороте
+
+    [Header("Тайминги")]
+    public float flashDuration = 0.12f;  // Сколько длится пиковая вспышка
+    public float fadeDuration = 0.25f;   // Как долго цвет возвращается в норму
 
     private Renderer[] renderers;
     private Color[] originalColors;
@@ -14,71 +17,74 @@ public class DamageFlasher : MonoBehaviour
 
     private void Start()
     {
-        // Находим все части 3D-модели (тело, броня, оружие) в этом объекте и его детях
+        // Находим все части 3D-модели (тело, броня)
         renderers = GetComponentsInChildren<Renderer>();
-        
-        // Запоминаем их оригинальные цвета
         originalColors = new Color[renderers.Length];
+        
         for (int i = 0; i < renderers.Length; i++)
         {
-            // Проверяем, есть ли у материала вообще цвет (чтобы не сломать партиклы)
-            if (renderers[i].material.HasProperty("_Color"))
-                originalColors[i] = renderers[i].material.color;
-            else if (renderers[i].material.HasProperty("_BaseColor")) // Для URP
+            if (renderers[i].material.HasProperty("_BaseColor"))
                 originalColors[i] = renderers[i].material.GetColor("_BaseColor");
+            else if (renderers[i].material.HasProperty("_Color"))
+                originalColors[i] = renderers[i].material.color;
             else
-                originalColors[i] = Color.white; // Фоллбэк
+                originalColors[i] = Color.white;
         }
     }
 
-    // Метод, который мы будем вызывать при получении урона
-    // damagePercent - это число от 0.0 до 1.0 (какую долю ХП снесли)
+    // 1. Вызов красной вспышки при получении урона
     public void Flash(float damagePercent)
+    {
+        float intensity = Mathf.Clamp(damagePercent, 0.2f, 1f);
+        StartFlash(damageColor, intensity);
+    }
+
+    // 2. Вызов приятной голубой вспышки при успешном увороте
+    public void FlashDodge(float intensity = 0.85f)
+    {
+        StartFlash(dodgeColor, intensity);
+    }
+
+    private void StartFlash(Color targetColor, float intensity)
     {
         if (renderers == null || renderers.Length == 0) return;
 
-        // Ограничиваем процент (чтобы не было ядерного свечения при оверкилле)
-        float intensity = Mathf.Clamp(damagePercent, 0.2f, 1f); 
-        // Минимальная интенсивность 0.2f гарантирует, что даже царапину будет видно
-
         if (flashCoroutine != null) StopCoroutine(flashCoroutine);
-        flashCoroutine = StartCoroutine(FlashRoutine(intensity));
+        flashCoroutine = StartCoroutine(FlashRoutine(targetColor, intensity));
     }
 
-    private IEnumerator FlashRoutine(float intensity)
+    private IEnumerator FlashRoutine(Color targetColor, float intensity)
     {
-        // --- ФАЗА 1: Мгновенная вспышка ---
-        SetColor(Color.Lerp(Color.white, flashColor, intensity));
+        // --- ФАЗА 1: Мгновенная яркая вспышка ---
+        SetColor(Color.Lerp(Color.white, targetColor, intensity));
         yield return new WaitForSeconds(flashDuration);
 
-        // --- ФАЗА 2: Плавное затухание (Возврат к оригиналу) ---
+        // --- ФАЗА 2: Плавное затухание к оригиналу ---
         float timer = 0f;
         while (timer < fadeDuration)
         {
             timer += Time.deltaTime;
             float progress = timer / fadeDuration;
 
-            // Возвращаем каждый материал к его изначальному цвету
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] == null) continue;
 
-                Color currentColor = Color.Lerp(flashColor, originalColors[i], progress);
-                
-                // Смешиваем текущий цвет с интенсивностью удара, 
-                // чтобы слабые удары затухали быстрее
+                Color currentColor = Color.Lerp(targetColor, originalColors[i], progress);
                 Color finalColor = Color.Lerp(originalColors[i], currentColor, intensity);
-                
+
                 SetMaterialColor(renderers[i].material, finalColor);
             }
             yield return null;
         }
 
-        // Страховка: жестко возвращаем оригинальные цвета в конце
+        // Возвращаем оригинальные цвета
         for (int i = 0; i < renderers.Length; i++)
         {
-            if (renderers[i] != null) SetMaterialColor(renderers[i].material, originalColors[i]);
+            if (renderers[i] != null) 
+                SetMaterialColor(renderers[i].material, originalColors[i]);
         }
+        flashCoroutine = null;
     }
 
     private void SetColor(Color c)
@@ -91,7 +97,7 @@ public class DamageFlasher : MonoBehaviour
 
     private void SetMaterialColor(Material mat, Color c)
     {
-        if (mat.HasProperty("_Color")) mat.color = c;
-        else if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+        else if (mat.HasProperty("_Color")) mat.color = c;
     }
 }

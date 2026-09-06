@@ -205,6 +205,7 @@ public class StatsContainer : MonoBehaviour, ISaveable
 
 
 
+    [HideInInspector] public bool IsMovementLocked = false;
     // --- ПЕРЕМЕННЫЕ ИМПАКТА ДЛЯ ДВИЖЕНИЯ ---
     [HideInInspector] public float ImpactSpeedMultiplier = 1f;
     [HideInInspector] public Vector3 CurrentKnockbackVelocity = Vector3.zero;

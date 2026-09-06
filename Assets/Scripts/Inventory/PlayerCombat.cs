@@ -159,6 +159,9 @@ public class PlayerCombat : MonoBehaviour
         canChainAttack = false; 
         lastAttackTime = Time.time;
 
+        // Сообщаем ИИ врагов, что игрок начал замах! ---
+         if (stateFlags != null) stateFlags.isSwingingWeapon = true;
+
         if (characterAnimator != null)
         {
             characterAnimator.SetInteger("ComboStep", currentComboStep);
@@ -184,6 +187,11 @@ public class PlayerCombat : MonoBehaviour
 
         float speedMult = activeWeapon.animSpeedMultiplier;
         if (speedMult <= 0) speedMult = 1f;
+
+        // Накладываем усталость бега на 0.75 сек после удара ---
+        Character playerChar = GetComponentInParent<Character>();
+        if (playerChar != null) playerChar.ApplyRunFatigue(0.75f);
+        // ------------------------------------------------------------------------
 
         // 1. ЗАМАХ
         float windupTime = activeWeapon.attackWindup / speedMult;
@@ -230,12 +238,20 @@ public class PlayerCombat : MonoBehaviour
         isSwinging = false;
         canChainAttack = false;
         attackCoroutine = null;
+
+         //  Снимаем флаг атаки по окончании удара ---
+        if (stateFlags != null) stateFlags.isSwingingWeapon = false;
+
+        
     }
 
     // --- СМЕНА ОРУЖИЯ ---
-    public void EquipWeapon(Weapon weaponAsset)
+    public void EquipWeapon(Weapon weaponAsset, bool rebuildVisuals = true)
     {
-        ClearWeaponObjects();
+        if (rebuildVisuals)
+        {
+            ClearWeaponObjects();
+        }
 
         if (weaponAsset == null)
         {
@@ -243,18 +259,14 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
 
-        // --- ПОДМЕНА МОДЕЛИ ОРУЖИЯ ДЛЯ СПОСОБНОСТЕЙ ---
         Weapon visualWeapon = weaponAsset;
         if (weaponAsset.isSkillWeapon)
         {
-            Inventory inv = FindFirstObjectByType <Inventory>();
+            Inventory inv = FindObjectOfType<Inventory>();
             if (inv != null)
             {
                 Weapon slotWeapon = inv.GetEquippedWeaponInSlot();
-                if (slotWeapon != null)
-                {
-                    visualWeapon = slotWeapon;
-                }
+                if (slotWeapon != null) visualWeapon = slotWeapon;
             }
         }
 
@@ -264,54 +276,52 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
 
-        currentWeaponData = weaponAsset; // Логические кулдауны остаются от способности
+        currentWeaponData = weaponAsset;
 
-        // Создаем визуальную модель определенного нами оружия
-        currentWeaponObject = Instantiate(visualWeapon.prefab); 
-        currentWeaponObject.transform.SetParent(rightHand, true);   
-        ResetTransform(currentWeaponObject);
-        
-        Collider rightCol = FindHitbox(currentWeaponObject);
-        if (rightCol != null)
+        // Создаем модель ТОЛЬКО если она действительно изменилась
+        if (rebuildVisuals)
         {
-            currentWeaponData.weaponHitbox = rightCol; 
-            SetupHitboxScript(rightCol, visualWeapon.damage, visualWeapon.impactPower);
+            currentWeaponObject = Instantiate(visualWeapon.prefab); 
+            currentWeaponObject.transform.SetParent(rightHand, true);   
+            ResetTransform(currentWeaponObject);
+            
+            Collider rightCol = FindHitbox(currentWeaponObject);
+            if (rightCol != null)
+            {
+                currentWeaponData.weaponHitbox = rightCol; 
+                SetupHitboxScript(rightCol, visualWeapon.damage, visualWeapon.impactPower);
+            }
+
+            rightHandTrail = currentWeaponObject.GetComponentInChildren<TrailRenderer>();
+            if (rightHandTrail != null) rightHandTrail.emitting = false;
+
+            // Левая рука (если есть)
+            if (visualWeapon.isDualWeapon && visualWeapon.offHandPrefab != null && leftHand != null)
+            {
+                leftHandModelObject = Instantiate(visualWeapon.offHandPrefab);
+                leftHandModelObject.transform.SetParent(leftHand, true);
+                ResetTransform(leftHandModelObject);
+
+                leftHandHitbox = FindHitbox(leftHandModelObject);
+                if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, visualWeapon.damage, visualWeapon.impactPower);
+
+                leftHandTrail = leftHandModelObject.GetComponentInChildren<TrailRenderer>();
+                if (leftHandTrail != null) leftHandTrail.emitting = false;
+            }
+            else
+            {
+                leftHandModelObject = null;
+                leftHandHitbox = null;
+                leftHandTrail = null; 
+            }
         }
 
-        rightHandTrail = currentWeaponObject.GetComponentInChildren<TrailRenderer>();
-        if (rightHandTrail != null) rightHandTrail.emitting = false;
-
-        // Левая рука
-        if (visualWeapon.isDualWeapon && visualWeapon.offHandPrefab != null && leftHand != null)
-        {
-            leftHandModelObject = Instantiate(visualWeapon.offHandPrefab);
-            leftHandModelObject.transform.SetParent(leftHand, true);
-            ResetTransform(leftHandModelObject);
-
-            leftHandHitbox = FindHitbox(leftHandModelObject);
-            if (leftHandHitbox != null) SetupHitboxScript(leftHandHitbox, visualWeapon.damage, visualWeapon.impactPower);
-
-            leftHandTrail = leftHandModelObject.GetComponentInChildren<TrailRenderer>();
-            if (leftHandTrail != null) leftHandTrail.emitting = false;
-        }
-        else
-        {
-            leftHandModelObject = null;
-            leftHandHitbox = null;
-            leftHandTrail = null; 
-        }
-
-        // Аниматор переопределяем на основе динамического оружия
         if (characterAnimator != null)
         {
             if (visualWeapon.weaponAnimatorOverride != null)
-            {
                 characterAnimator.runtimeAnimatorController = visualWeapon.weaponAnimatorOverride;
-            }
             else if (weaponAsset.weaponAnimatorOverride != null)
-            {
                 characterAnimator.runtimeAnimatorController = weaponAsset.weaponAnimatorOverride;
-            }
             
             characterAnimator.SetFloat("WeaponAttackSpeed", visualWeapon.animSpeedMultiplier);
         }
@@ -320,6 +330,31 @@ public class PlayerCombat : MonoBehaviour
         isSwinging = false;
         isBlocking = false;
         
+        UpdateAnimatorCombatState();
+    }
+
+    public void ClearWeapon(bool destroyVisuals = true)
+    {
+        if (destroyVisuals)
+        {
+            ClearWeaponObjects();
+            rightHandTrail = null;
+            leftHandTrail = null;
+
+            if (characterAnimator != null)
+            {
+                characterAnimator.runtimeAnimatorController = defaultAnimatorController;
+                characterAnimator.SetFloat("WeaponAttackSpeed", 1f);
+            }
+        }
+
+        currentWeaponData = null;
+        currentComboStep = 0;
+        isSwinging = false;
+        isBlocking = false;
+
+        if (stateFlags != null) stateFlags.isSwingingWeapon = false;
+
         UpdateAnimatorCombatState();
     }
 
@@ -342,6 +377,9 @@ public class PlayerCombat : MonoBehaviour
         currentComboStep = 0;
         isSwinging = false;
         isBlocking = false;
+
+        // Сбрасываем флаг, если убрали оружие
+        if (stateFlags != null) stateFlags.isSwingingWeapon = false;
 
         UpdateAnimatorCombatState();
     }
@@ -423,5 +461,13 @@ public class PlayerCombat : MonoBehaviour
             }
         }
         return currentWeaponData;
+    }
+
+    public Renderer[] GetWeaponRenderers()
+    {
+        var rends = new System.Collections.Generic.List<Renderer>();
+        if (currentWeaponObject != null) rends.AddRange(currentWeaponObject.GetComponentsInChildren<Renderer>());
+        if (leftHandModelObject != null) rends.AddRange(leftHandModelObject.GetComponentsInChildren<Renderer>());
+        return rends.ToArray();
     }
 }

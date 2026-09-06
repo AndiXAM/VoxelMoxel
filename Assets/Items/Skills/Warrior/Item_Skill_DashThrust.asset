@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0856464193c34b645899c8e4ed052c6c, type: 3}
+  m_Name: Item_Skill_DashThrust
+  m_EditorClassIdentifier: Assembly-CSharp::DashThrustSkill
+  itemName: Thrust
+  icon: {fileID: 21300000, guid: fb0adc8ed6e0a0e46939240e7b2e3864, type: 3}
+  prefab: {fileID: 0}
+  maxStackSize: 1
+  skillAnimation: {fileID: 7400000, guid: ce9f579323fd2c94bab46dbbfcc04583, type: 2}
+  bodyMask: 0
+  canMoveWhileCasting: 0
+  castTime: 0
+  activeDuration: 1.65
+  cooldown: 3
+  requiresEquippedWeapon: 1
+  castSound: {fileID: 0}
+  impactSound: {fileID: 8300000, guid: 9e3741ed6d51f76489a64ee7d625218b, type: 3}
+  activationSound: {fileID: 8300000, guid: 0ba26f992793fab43a147f4ab81d2ac9, type: 3}
+  castVFXPrefab: {fileID: 0}
+  impactVFXPrefab: {fileID: 0}
+  prepDuration: 0.5
+  thrustDuration: 0.45
+  inAnimDecelDuration: 0.4
+  postInertiaDuration: 0.5
+  prepTurnSpeed: 18
+  dashTurnSpeed: 1.8
+  thrustDistance: 4
+  damage: 10
+  skillImpactPower: 1.5
+  hitboxSize: {x: 1.5, y: 1.5, z: 2}
+  hitboxOffset: {x: 0, y: 1, z: 1.2}

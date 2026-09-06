@@ -36,10 +36,13 @@ public class CharacterAnimatorController : MonoBehaviour
     {
         bool hasInput = (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D));
         
-        // Твоя логика переключателя бега
-        if (Input.GetKeyDown(KeyCode.LeftControl)) isRunMode = !isRunMode;
+        // Переключаем бег только если на персонаже нет усталости
+        Character charScript = capsule.GetComponent<Character>();
+        if (Input.GetKeyDown(KeyCode.LeftControl) && (charScript == null || !charScript.isRunFatigued))
+        {
+            isRunMode = !isRunMode;
+        }
 
-        // Отправка в Аниматор
         characterAnimation.SetBool("IsMoving", hasInput);
         characterAnimation.SetBool("Run", isRunMode);
     }
@@ -99,6 +102,15 @@ public class CharacterAnimatorController : MonoBehaviour
     public void StartRespawn() 
     {
         characterAnimation.SetBool("Death", false);
+    }
+
+    public void SetRunState(bool isRunning)
+    {
+        isRunMode = isRunning;
+        if (characterAnimation != null)
+        {
+            characterAnimation.SetBool("Run", isRunning);
+        }
     }
 
 

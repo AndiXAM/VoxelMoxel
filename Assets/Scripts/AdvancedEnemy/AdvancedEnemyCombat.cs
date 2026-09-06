@@ -197,4 +197,12 @@ public class AdvancedEnemyCombat : MonoBehaviour
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
     }
+
+    public Renderer[] GetWeaponRenderers()
+    {
+        var rends = new System.Collections.Generic.List<Renderer>();
+        if (currentRightWeaponObj != null) rends.AddRange(currentRightWeaponObj.GetComponentsInChildren<Renderer>());
+        if (currentLeftWeaponObj != null) rends.AddRange(currentLeftWeaponObj.GetComponentsInChildren<Renderer>());
+        return rends.ToArray();
+    }
 }

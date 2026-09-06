@@ -18,7 +18,11 @@ public class Character : MonoBehaviour, ISaveable
     private StatModifier dashActiveBonus = new StatModifier(4f, StatModType.Flat, "DashActive");
     private float dashFadeSpeed = 0f; 
 
-    private StatModifier runBonus = new StatModifier(2.5f, StatModType.Flat, "Run");
+    private StatModifier runBonus = new StatModifier(1.5f, StatModType.Flat, "Run");
+
+    // --- УСТАЛОСТЬ БЕГА ПОСЛЕ АТАК / СКИЛЛОВ ---
+    private Coroutine runFatigueCoroutine;
+    [HideInInspector] public bool isRunFatigued = false;
 
     public Transform Camera;
     public CharacterAnimatorController animController;
@@ -49,6 +53,12 @@ public class Character : MonoBehaviour, ISaveable
         float x = Input.GetAxisRaw("Horizontal"); // GetAxisRaw отзывчивее для клавиатуры
         float z = Input.GetAxisRaw("Vertical");
 
+        if (playerStats != null && playerStats.IsMovementLocked)
+        {
+            x = 0f;
+            z = 0f;
+        }
+
         Vector3 moveInput = new Vector3(x, 0, z);
         if (moveInput.magnitude > 1) moveInput.Normalize();
 
@@ -76,7 +86,7 @@ public class Character : MonoBehaviour, ISaveable
         }
 
         // 4. БЕГ (CTRL) - Переключатель
-        if (Input.GetKeyDown(KeyCode.LeftControl))
+        if (Input.GetKeyDown(KeyCode.LeftControl) && !isRunFatigued)
         {
             IsRun = !IsRun;
             if (IsRun) playerStats.MoveSpeed.AddModifier(runBonus);
@@ -209,4 +219,34 @@ public class Character : MonoBehaviour, ISaveable
         Vector3 pushDir = new Vector3(hit.moveDirection.x, 0, hit.moveDirection.z);
         body.linearVelocity = pushDir * 2f;
     }
+
+    public void ApplyRunFatigue(float duration = 0.75f)
+    {
+        if (runFatigueCoroutine != null) StopCoroutine(runFatigueCoroutine);
+        runFatigueCoroutine = StartCoroutine(RunFatigueRoutine(duration));
+    }
+
+    private IEnumerator RunFatigueRoutine(float duration)
+    {
+        isRunFatigued = true;
+
+        // Если игрок бежал — принудительно выключаем бег и снимаем бонус скорости
+        if (IsRun)
+        {
+            IsRun = false;
+            playerStats.MoveSpeed.RemoveModifier(runBonus);
+        }
+
+        // Синхронизируем аниматор (сбрасываем анимацию бега на шаг)
+        if (animController != null)
+        {
+            animController.SetRunState(false);
+        }
+
+        yield return new WaitForSeconds(duration);
+
+        isRunFatigued = false;
+        runFatigueCoroutine = null;
+    }
+
 }

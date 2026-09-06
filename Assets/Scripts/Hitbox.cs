@@ -86,9 +86,17 @@ public class Hitbox : MonoBehaviour
             pushDir.Normalize();
             // ----------------------------------------
 
+            // --- РАСЧЕТ ПРОЦЕНТА УРОНА ОТ МАКС ХП ВРАГА ---
+            WeaponFlasher enemyFlasher = enemyHealth.GetComponentInParent<WeaponFlasher>();
+
+            float maxHp = (enemyStats != null && enemyStats.MaxHealth != null) ? enemyStats.MaxHealth.Value : 100f;
+            float damagePercent = Mathf.Clamp01(damageAmount / maxHp);
+
             if (isDodging)
             {
                 if (mainAudioSource != null && dodgedSound != null) mainAudioSource.PlayOneShot(dodgedSound);
+                DamageFlasher enemyBodyFlasher = enemyHealth.GetComponentInParent<DamageFlasher>();
+                if (enemyBodyFlasher != null) enemyBodyFlasher.FlashDodge();
             }
             else if (isParrying)
             {
@@ -97,6 +105,9 @@ public class Hitbox : MonoBehaviour
                 if (dmg > 0) enemyHealth.GetDamage(dmg);
                 
                 if (mainAudioSource != null && parrySound != null) mainAudioSource.PlayOneShot(parrySound);
+
+                // ВРАГ СПАРИРОВАЛ: вспыхивает ТОЛЬКО оружие врага белым!
+                if (enemyFlasher != null) enemyFlasher.Flash(Color.white, damagePercent);
             }
             else if (isBlocking)
             {
@@ -106,10 +117,13 @@ public class Hitbox : MonoBehaviour
                 
                 if (mainAudioSource != null && BlockSound != null) mainAudioSource.PlayOneShot(BlockSound);
 
-                // Передаем ГОТОВЫЙ вектор pushDir!
                 enemyStats.TakeImpact(currentImpactPower, true, pushDir); 
                 attackLanded = true; 
+
+                // ВРАГ ЗАБЛОКИРОВАЛ: моргает ТОЛЬКО оружие врага черным!
+                if (enemyFlasher != null) enemyFlasher.Flash(Color.black, damagePercent);
             }
+
             else
             {
                 enemyHealth.GetDamage(Mathf.RoundToInt(damageAmount));
